@@ -10,6 +10,6 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY app ./app
 
-EXPOSE 8000
+EXPOSE 3000 8000
 
-CMD ["sh", "-c", "python -m app.seed && uvicorn app.main:app --host 0.0.0.0 --port 8000"]
+CMD ["sh", "-c", "python -m app.seed && (uvicorn app.main:app --host 0.0.0.0 --port 3000 &) && uvicorn app.main:app --host 0.0.0.0 --port 8000"]
