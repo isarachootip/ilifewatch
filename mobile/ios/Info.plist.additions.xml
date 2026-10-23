@@ -1,0 +1,9 @@
+<!-- เพิ่ม key เหล่านี้ใน ios/Runner/Info.plist (ภายใน <dict> หลัก) -->
+<key>NSBluetoothAlwaysUsageDescription</key>
+<string>แอปใช้ Bluetooth เพื่อเชื่อมต่อนาฬิกาและรับข้อมูลสุขภาพ</string>
+<key>NSBluetoothPeripheralUsageDescription</key>
+<string>แอปใช้ Bluetooth เพื่อเชื่อมต่อนาฬิกาและรับข้อมูลสุขภาพ</string>
+<key>UIBackgroundModes</key>
+<array>
+    <string>bluetooth-central</string>
+</array>

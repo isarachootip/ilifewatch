@@ -1,0 +1,35 @@
+// ตั้งค่า Veepoo SDK สำหรับ Android
+// ใน android/app/build.gradle ให้เพิ่มบรรทัดนี้ไว้ล่างสุด:
+//     apply from: "veepoo-sdk.gradle"
+// (ถ้าใช้ build.gradle.kts ให้ใช้:  apply(from = "veepoo-sdk.gradle") )
+//
+// และคัดลอกไฟล์จากโฟลเดอร์ SDK:
+//   jar_core/*.aar, jar_base/libcomx-0.5.jar, jar_base/gson-2.2.4.jar   -> android/app/libs/
+//   jniLibs/ (ทั้งโฟลเดอร์ arm64-v8a, armeabi-v7a, x86, x86_64)           -> android/app/src/main/jniLibs/
+// libnative-lib.so จำเป็นสำหรับ ECG
+
+android {
+    defaultConfig {
+        minSdkVersion 24 // ตามแอปตัวอย่างของ SDK
+    }
+    packagingOptions {
+        pickFirst 'lib/**/libc++_shared.so'
+    }
+}
+
+configurations {
+    all {
+        exclude group: 'com.google.code.gson', module: 'gson'
+    }
+}
+
+dependencies {
+    implementation fileTree(dir: 'libs', include: ['*.jar', '*.aar'])
+
+    // ไลบรารีที่แอปตัวอย่างของ SDK ใช้ (ไฟล์ app/build.gradle ใน Demo)
+    implementation "org.jetbrains.kotlin:kotlin-stdlib:2.1.0"
+    implementation 'no.nordicsemi.android:mcumgr-core:2.7.4'
+    implementation 'no.nordicsemi.android:mcumgr-ble:2.7.4'
+    implementation 'no.nordicsemi.android.support.v18:scanner:1.4.2'
+    implementation 'androidx.localbroadcastmanager:localbroadcastmanager:1.1.0'
+}

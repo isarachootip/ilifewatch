@@ -1,0 +1,26 @@
+# Python / Backend
+backend/.venv/
+backend/**/__pycache__/
+*.pyc
+*.pyo
+*.db
+*.sqlite3
+
+# Archive backup
+ite_watch_care.zip
+
+# Flutter / Mobile build artifacts
+mobile/.dart_tool/
+mobile/.flutter-plugins
+mobile/.flutter-plugins-dependencies
+mobile/.packages
+mobile/build/
+mobile/android/.gradle/
+mobile/android/captures/
+mobile/android/gradlew
+mobile/android/gradlew.bat
+mobile/android/local.properties
+mobile/android/**/GeneratedPluginRegistrant.java
+mobile/ios/Flutter/ephemeral/
+mobile/ios/Pods/
+mobile/ios/.symlinks/
