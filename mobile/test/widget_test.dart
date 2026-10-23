@@ -1,8 +1,14 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:ite_watch_care/main.dart';
 import 'package:ite_watch_care/screens/bp_category.dart';
 import 'package:ite_watch_care/watch/watch_models.dart';
 
 void main() {
+  testWidgets('WatchCareApp renders SetupScreen without TextStyle assertion error', (tester) async {
+    await tester.pumpWidget(const WatchCareApp());
+    expect(find.text('ลงทะเบียนใช้งาน'), findsOneWidget);
+  });
+
   test('BpCategory classifies readings according to Thai hypertension guidelines', () {
     expect(BpCategory.of(120, 78).label, 'ปกติ');
     expect(BpCategory.of(135, 85).label, 'ค่อนข้างสูง');

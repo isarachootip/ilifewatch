@@ -25,8 +25,11 @@ class WatchCareApp extends StatelessWidget {
       theme: ThemeData(
         colorScheme: scheme,
         useMaterial3: true,
-        // ตัวอักษรใหญ่ขึ้นเล็กน้อย เหมาะกับผู้สูงอายุ
-        textTheme: Typography.material2021().black.apply(fontSizeFactor: 1.1),
+      ),
+      // ตัวอักษรใหญ่ขึ้นเล็กน้อย เหมาะกับผู้สูงอายุ
+      builder: (context, child) => MediaQuery(
+        data: MediaQuery.of(context).copyWith(textScaler: const TextScaler.linear(1.1)),
+        child: child ?? const SizedBox.shrink(),
       ),
       home: ListenableBuilder(
         listenable: AppState.instance,
