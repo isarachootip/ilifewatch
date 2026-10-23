@@ -33,7 +33,13 @@ import io.flutter.plugin.common.MethodChannel
 
 internal class VeepooConnectionHandler(private val b: VeepooBridge) {
 
+    @android.annotation.SuppressLint("MissingPermission")
     fun startScan() {
+        try {
+            android.bluetooth.BluetoothAdapter.getDefaultAdapter()?.bondedDevices?.forEach { d ->
+                b.emit("scan", mapOf("name" to (d.name ?: ""), "mac" to d.address, "rssi" to -40))
+            }
+        } catch (_: Throwable) {}
         b.vp.startScanDevice(object : SearchResponse {
             override fun onSearchStarted() {}
             override fun onDeviceFounded(r: SearchResult?) {
