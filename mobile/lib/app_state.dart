@@ -10,7 +10,7 @@ class AppState extends ChangeNotifier {
   static final AppState instance = AppState._();
 
   // เปลี่ยนเป็น URL ของ backend จริงก่อนใช้งาน
-  static const defaultServer = 'http://192.168.1.100:8000';
+  static const defaultServer = 'https://ilifewatch.online';
 
   String server = defaultServer;
   String? token;

@@ -34,6 +34,7 @@ app.include_router(staff_ops.router)
 _STATIC = Path(__file__).parent / "static"
 
 
+@app.get("/", include_in_schema=False)
 @app.get("/dashboard", include_in_schema=False)
 def dashboard():
     return FileResponse(_STATIC / "dashboard.html")
