@@ -2,9 +2,10 @@ import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'data/api_client.dart';
+import 'l10n/app_language.dart';
 import 'watch/watch_models.dart';
 
-/// สถานะของแอป: บัญชีผู้ใช้, นาฬิกาที่จับคู่, ค่าล่าสุดจากนาฬิกา F520Pro
+/// สถานะของแอป: บัญชีผู้ใช้, ภาษา, นาฬิกาที่จับคู่, ค่าล่าสุดจากนาฬิกา F520Pro
 class AppState extends ChangeNotifier {
   AppState._();
   static final AppState instance = AppState._();
@@ -12,6 +13,7 @@ class AppState extends ChangeNotifier {
   static const defaultServer = 'https://ilifewatch.online';
 
   String server = defaultServer;
+  AppLanguage language = AppLanguage.th;
   String? token;
   String? patientName;
   String? orgName;
@@ -49,6 +51,7 @@ class AppState extends ChangeNotifier {
   Future<void> load() async {
     final p = await SharedPreferences.getInstance();
     server = p.getString('server') ?? defaultServer;
+    language = AppLanguage.fromCode(p.getString('language'));
     token = p.getString('token');
     patientName = p.getString('patientName');
     orgName = p.getString('orgName');
@@ -95,6 +98,14 @@ class AppState extends ChangeNotifier {
     await p.setInt('weightKg', profile!.weightKg);
     await p.setInt('birthYear', profile!.birthYear);
     notifyListeners();
+  }
+
+  Future<void> setLanguage(AppLanguage lang) async {
+    if (language == lang) return;
+    language = lang;
+    notifyListeners();
+    final p = await SharedPreferences.getInstance();
+    await p.setString('language', lang.code);
   }
 
   Future<void> setPaired(String mac, String name) async {

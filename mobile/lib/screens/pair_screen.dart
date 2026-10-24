@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 import '../app_state.dart';
+import '../l10n/app_strings.dart';
 import '../services/sync_service.dart';
 import '../watch/watch_models.dart';
 import '../watch/watch_service.dart';
@@ -38,12 +39,12 @@ class _PairScreenState extends State<PairScreen> {
       ].request();
       return r.values.every((s) => s.isGranted || s.isLimited);
     }
-    return true; // iOS ถามสิทธิ์ Bluetooth เองตอนเริ่มสแกน
+    return true;
   }
 
   Future<void> _start() async {
     if (!await _askPermissions()) {
-      setState(() => _error = 'ต้องอนุญาต Bluetooth และตำแหน่งเพื่อค้นหานาฬิกา');
+      setState(() => _error = tr('perm_bt_error'));
       return;
     }
     _sub?.cancel();
@@ -64,7 +65,7 @@ class _PairScreenState extends State<PairScreen> {
       unawaited(SyncService.instance.afterConnect());
       if (mounted && Navigator.canPop(context)) Navigator.pop(context);
     } catch (e) {
-      setState(() => _error = 'เชื่อมต่อไม่สำเร็จ ลองให้นาฬิกาอยู่ใกล้โทรศัพท์แล้วลองใหม่');
+      setState(() => _error = tr('connect_fail_error'));
     } finally {
       if (mounted) setState(() => _connecting = null);
     }
@@ -81,14 +82,14 @@ class _PairScreenState extends State<PairScreen> {
   Widget build(BuildContext context) {
     final list = _found.values.toList()..sort((a, b) => b.rssi.compareTo(a.rssi));
     return Scaffold(
-      appBar: AppBar(title: const Text('เชื่อมต่อนาฬิกา'), actions: [
+      appBar: AppBar(title: Text(tr('pair_screen_title')), actions: [
         IconButton(onPressed: _start, icon: const Icon(Icons.refresh)),
       ]),
       body: Column(
         children: [
-          const Padding(
-            padding: EdgeInsets.all(16),
-            child: Text('เปิดหน้าจอนาฬิกาและวางไว้ใกล้โทรศัพท์ แล้วเลือกนาฬิกาของคุณจากรายการ'),
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Text(tr('pair_guide_text')),
           ),
           if (_error != null)
             Padding(
@@ -105,8 +106,8 @@ class _PairScreenState extends State<PairScreen> {
                       final w = list[i];
                       return ListTile(
                         leading: const Icon(Icons.watch),
-                        title: Text(w.name.isEmpty ? 'ไม่มีชื่อ' : w.name),
-                        subtitle: Text('${w.mac}  สัญญาณ ${w.rssi} dBm'),
+                        title: Text(w.name.isEmpty ? tr('unnamed_device') : w.name),
+                        subtitle: Text('${w.mac}  ${tr('signal_dbm')} ${w.rssi} dBm'),
                         trailing: _connecting == w.mac
                             ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2))
                             : const Icon(Icons.chevron_right),

@@ -4,6 +4,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../l10n/app_strings.dart';
 import '../services/sync_service.dart';
 import '../watch/watch_models.dart';
 import '../watch/watch_service.dart';
@@ -60,7 +61,7 @@ class _EcgScreenState extends State<EcgScreen> {
     } on PlatformException catch (e) {
       setState(() => _error = e.message);
     } on TimeoutException {
-      setState(() => _error = 'หมดเวลาวัด ลองใหม่อีกครั้ง');
+      setState(() => _error = tr('timeout_error'));
     } finally {
       await _waveSub?.cancel();
       await _progSub?.cancel();
@@ -80,11 +81,11 @@ class _EcgScreenState extends State<EcgScreen> {
   Widget build(BuildContext context) {
     final t = Theme.of(context).textTheme;
     return Scaffold(
-      appBar: AppBar(title: const Text('วัดคลื่นไฟฟ้าหัวใจ')),
+      appBar: AppBar(title: Text(tr('ecg_screen_title'))),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-          const Text('นั่งนิ่งๆ วางแขนบนโต๊ะ แล้วใช้นิ้วมืออีกข้างแตะขั้วโลหะบนนาฬิกาค้างไว้จนวัดเสร็จ'),
+          Text(tr('ecg_guide_text')),
           const SizedBox(height: 12),
           Container(
             height: 220,
@@ -99,20 +100,24 @@ class _EcgScreenState extends State<EcgScreen> {
           if (_measuring) ...[
             LinearProgressIndicator(value: _progress > 0 ? _progress / 100 : null),
             const SizedBox(height: 6),
-            Text(_leadOff ? 'ไม่ได้แตะขั้ว กรุณาแตะนิ้วค้างไว้' : 'กำลังวัด $_progress%${_hr != null ? ' · ชีพจร $_hr' : ''}',
-                style: _leadOff ? TextStyle(color: Theme.of(context).colorScheme.error) : null),
+            Text(
+              _leadOff
+                  ? tr('ecg_lead_off')
+                  : '${tr('measuring_pct')} $_progress%${_hr != null ? ' · ${tr('pulse_label')} $_hr' : ''}',
+              style: _leadOff ? TextStyle(color: Theme.of(context).colorScheme.error) : null,
+            ),
           ],
           if (_result != null) ...[
-            Text('วัดเสร็จแล้ว', style: t.titleLarge),
+            Text(tr('measure_done'), style: t.titleLarge),
             const SizedBox(height: 6),
             Wrap(spacing: 8, runSpacing: 8, children: [
-              _chip('ชีพจรเฉลี่ย', _result!.avgHeartRate, 'ครั้ง/นาที'),
+              _chip(tr('avg_pulse'), _result!.avgHeartRate, tr('beats_per_min')),
               _chip('HRV', _result!.avgHrv, 'ms'),
               _chip('QT', _result!.avgQt, 'ms'),
-              _chip('การหายใจ', _result!.avgRespRate, 'ครั้ง/นาที'),
+              _chip(tr('resp_rate'), _result!.avgRespRate, tr('beats_per_min')),
             ]),
             const SizedBox(height: 8),
-            const Text('ส่งผลให้เจ้าหน้าที่/แพทย์ตรวจดูแล้ว ผลนี้ไม่ใช่การวินิจฉัยโรค'),
+            Text(tr('ecg_sent_note')),
           ],
           if (_error != null)
             Text(_error!, style: t.titleMedium?.copyWith(color: Theme.of(context).colorScheme.error)),
@@ -121,7 +126,7 @@ class _EcgScreenState extends State<EcgScreen> {
             onPressed: _measuring ? () => _watch.cancelEcg() : _start,
             child: Padding(
               padding: const EdgeInsets.all(14),
-              child: Text(_measuring ? 'หยุด' : (_result == null ? 'เริ่มวัด' : 'วัดอีกครั้ง')),
+              child: Text(_measuring ? tr('stop') : (_result == null ? tr('start_measure') : tr('measure_again'))),
             ),
           ),
         ]),
@@ -139,7 +144,6 @@ class EcgPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    // เส้นตาราง
     final grid = Paint()
       ..color = const Color(0xFFF6D3D1)
       ..strokeWidth = 0.5;
@@ -151,7 +155,6 @@ class EcgPainter extends CustomPainter {
     }
     if (points.length < 2) return;
 
-    // ปรับสเกลอัตโนมัติ (ค่าดิบจาก ADC ยังไม่แปลงเป็น mV)
     var lo = points.reduce(math.min).toDouble();
     var hi = points.reduce(math.max).toDouble();
     if (hi - lo < 1) hi = lo + 1;

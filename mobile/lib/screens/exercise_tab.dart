@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../app_state.dart';
+import '../l10n/app_strings.dart';
+import '../l10n/language_picker.dart';
 import '../theme/ilife_theme.dart';
 
 /// แท็บที่ 2: ออกกำลังกาย (ดีไซน์ตาม Huawei Health ในวิดีโอ)
@@ -15,13 +17,13 @@ class ExerciseTab extends StatefulWidget {
 
 class _ExerciseTabState extends State<ExerciseTab> {
   int _mode = 0;
-  static const _modes = ['แผน', 'เดินเพื่อสุขภาพ', 'วิ่งกลางแจ้ง', 'วิ่งในร่ม', 'ปั่นจักรยาน'];
-  static const _days = ['จ', 'อ', 'พ', 'พฤ', 'ศ', 'ส', 'อา'];
+  static const _modeKeys = ['mode_plan', 'mode_walk', 'mode_run_out', 'mode_run_in', 'mode_cycle'];
+  static const _dayKeys = ['day_mon', 'day_tue', 'day_wed', 'day_thu', 'day_fri', 'day_sat', 'day_sun'];
 
   @override
   Widget build(BuildContext context) {
     final s = AppState.instance;
-    final goal = 6000;
+    const goal = 6000;
     final progress = (s.todaySteps / goal).clamp(0.0, 1.0);
     final todayWeekday = DateTime.now().weekday; // 1 = Mon .. 7 = Sun
 
@@ -31,7 +33,7 @@ class _ExerciseTabState extends State<ExerciseTab> {
           height: 38,
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
-            itemCount: _modes.length,
+            itemCount: _modeKeys.length,
             separatorBuilder: (_, __) => const SizedBox(width: 18),
             itemBuilder: (_, i) {
               final active = i == _mode;
@@ -41,7 +43,7 @@ class _ExerciseTabState extends State<ExerciseTab> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Text(
-                      _modes[i],
+                      tr(_modeKeys[i]),
                       style: TextStyle(
                         fontSize: active ? 18 : 15,
                         fontWeight: active ? FontWeight.w800 : FontWeight.w500,
@@ -57,6 +59,10 @@ class _ExerciseTabState extends State<ExerciseTab> {
             },
           ),
         ),
+        actions: const [
+          LanguagePickerButton(),
+          SizedBox(width: 8),
+        ],
       ),
       body: ListView(
         padding: const EdgeInsets.all(16),
@@ -70,8 +76,16 @@ class _ExerciseTabState extends State<ExerciseTab> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text('ตารางแผนการเดินประจำสัปดาห์', style: TextStyle(fontWeight: FontWeight.w800, color: ILifeTheme.navy)),
-                      Text('${s.todaySteps} / $goal ก้าว', style: const TextStyle(color: ILifeTheme.magenta, fontWeight: FontWeight.w700)),
+                      Flexible(
+                        child: Text(
+                          tr('weekly_walk_plan'),
+                          style: const TextStyle(fontWeight: FontWeight.w800, color: ILifeTheme.navy),
+                        ),
+                      ),
+                      Text(
+                        '${s.todaySteps} / $goal ${tr('unit_steps')}',
+                        style: const TextStyle(color: ILifeTheme.magenta, fontWeight: FontWeight.w700),
+                      ),
                     ],
                   ),
                   const SizedBox(height: 14),
@@ -81,7 +95,7 @@ class _ExerciseTabState extends State<ExerciseTab> {
                       final isToday = (i + 1) == todayWeekday;
                       return Column(
                         children: [
-                          Text(_days[i], style: const TextStyle(fontSize: 12, color: ILifeTheme.textSecondary)),
+                          Text(tr(_dayKeys[i]), style: const TextStyle(fontSize: 12, color: ILifeTheme.textSecondary)),
                           const SizedBox(height: 6),
                           CircleAvatar(
                             radius: 16,
@@ -130,7 +144,7 @@ class _ExerciseTabState extends State<ExerciseTab> {
                               s.distanceKm.toStringAsFixed(2),
                               style: const TextStyle(fontSize: 34, fontWeight: FontWeight.w900, color: ILifeTheme.navy),
                             ),
-                            const Text('กิโลเมตรวันนี้', style: TextStyle(fontSize: 12, color: ILifeTheme.textSecondary)),
+                            Text(tr('km_today'), style: const TextStyle(fontSize: 12, color: ILifeTheme.textSecondary)),
                           ],
                         ),
                       ],
@@ -140,9 +154,9 @@ class _ExerciseTabState extends State<ExerciseTab> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceAround,
                     children: [
-                      _StatItem(label: 'จำนวนก้าว', value: '${s.todaySteps}', unit: 'ก้าว'),
-                      _StatItem(label: 'แคลอรี', value: '${s.caloriesKcal}', unit: 'kcal'),
-                      _StatItem(label: 'ชีพจรล่าสุด', value: '${s.latestHeartRate ?? "-"}', unit: 'bpm'),
+                      _StatItem(label: tr('steps'), value: '${s.todaySteps}', unit: tr('unit_steps')),
+                      _StatItem(label: tr('calories'), value: '${s.caloriesKcal}', unit: 'kcal'),
+                      _StatItem(label: tr('latest_pulse'), value: '${s.latestHeartRate ?? "-"}', unit: 'bpm'),
                     ],
                   ),
                   const SizedBox(height: 20),
@@ -151,9 +165,9 @@ class _ExerciseTabState extends State<ExerciseTab> {
                     child: FilledButton.icon(
                       onPressed: widget.onSync,
                       icon: const Icon(Icons.sync),
-                      label: const Padding(
-                        padding: EdgeInsets.all(12),
-                        child: Text('อัปเดตก้าวเดินจากนาฬิกา F520Pro'),
+                      label: Padding(
+                        padding: const EdgeInsets.all(12),
+                        child: Text(tr('update_steps_btn')),
                       ),
                     ),
                   ),
@@ -169,19 +183,15 @@ class _ExerciseTabState extends State<ExerciseTab> {
 
 class _StatItem extends StatelessWidget {
   const _StatItem({required this.label, required this.value, required this.unit});
-  final String label;
-  final String value;
-  final String unit;
+  final String label, value, unit;
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Text(label, style: const TextStyle(fontSize: 12, color: ILifeTheme.textSecondary)),
-        const SizedBox(height: 4),
-        Text(value, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: ILifeTheme.navy)),
-        Text(unit, style: const TextStyle(fontSize: 11, color: ILifeTheme.textSecondary)),
-      ],
-    );
+    return Column(children: [
+      Text(label, style: const TextStyle(fontSize: 12, color: ILifeTheme.textSecondary)),
+      const SizedBox(height: 4),
+      Text(value, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: ILifeTheme.navy)),
+      Text(unit, style: const TextStyle(fontSize: 11, color: ILifeTheme.textSecondary)),
+    ]);
   }
 }

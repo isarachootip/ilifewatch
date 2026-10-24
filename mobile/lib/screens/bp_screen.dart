@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../app_state.dart';
+import '../l10n/app_strings.dart';
 import '../services/sync_service.dart';
 import '../watch/watch_models.dart';
 import '../watch/watch_service.dart';
@@ -49,7 +50,7 @@ class _BpScreenState extends State<BpScreen> {
     } on PlatformException catch (e) {
       setState(() => _error = e.message);
     } on TimeoutException {
-      setState(() => _error = 'หมดเวลาวัด ลองใหม่อีกครั้ง');
+      setState(() => _error = tr('timeout_error'));
     } finally {
       await _progSub?.cancel();
       if (mounted) setState(() => _measuring = false);
@@ -67,23 +68,20 @@ class _BpScreenState extends State<BpScreen> {
   Widget build(BuildContext context) {
     final t = Theme.of(context).textTheme;
     return Scaffold(
-      appBar: AppBar(title: const Text('วัดความดัน')),
+      appBar: AppBar(title: Text(tr('bp_screen_title'))),
       body: Padding(
         padding: const EdgeInsets.all(20),
         child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
           if (!_measuring && _result == null) ...[
-            const Text('ก่อนวัด:', style: TextStyle(fontWeight: FontWeight.bold)),
+            Text(tr('before_measure'), style: const TextStyle(fontWeight: FontWeight.bold)),
             const SizedBox(height: 6),
-            const Text('• นั่งพัก 5 นาที หลังพิงพนัก เท้าวางราบ\n'
-                '• รัดสายนาฬิกาให้กระชับ ถุงลมอยู่ด้านในข้อมือ\n'
-                '• วางแขนบนโต๊ะ ยกข้อมือให้อยู่ระดับหัวใจ\n'
-                '• อยู่นิ่งๆ ไม่พูดคุยระหว่างวัด (ประมาณ 1 นาที)'),
+            Text(tr('bp_guide_text')),
             const SizedBox(height: 12),
             SwitchListTile(
               value: _cuff,
               onChanged: (v) => setState(() => _cuff = v),
-              title: const Text('ใช้ปั๊มลม (แนะนำ)'),
-              subtitle: const Text('ปิดเพื่อใช้เซนเซอร์แสง ซึ่งเร็วกว่าแต่แม่นยำน้อยกว่า'),
+              title: Text(tr('use_cuff_title')),
+              subtitle: Text(tr('use_cuff_sub')),
             ),
           ],
           const Spacer(),
@@ -96,13 +94,13 @@ class _BpScreenState extends State<BpScreen> {
                   SizedBox.expand(child: CircularProgressIndicator(value: _progress > 0 ? _progress / 100 : null, strokeWidth: 10)),
                   Column(mainAxisSize: MainAxisSize.min, children: [
                     Text('$_progress%', style: t.headlineMedium),
-                    if (_pressure != null) Text('แรงดัน $_pressure mmHg'),
+                    if (_pressure != null) Text('${tr('pressure_mmhg')} $_pressure mmHg'),
                   ]),
                 ]),
               ),
             ),
             const SizedBox(height: 16),
-            const Text('กำลังวัด... กรุณาอยู่นิ่งๆ', textAlign: TextAlign.center),
+            Text(tr('measuring_stay_still'), textAlign: TextAlign.center),
           ],
           if (_result != null) _ResultView(r: _result!),
           if (_error != null)
@@ -112,7 +110,7 @@ class _BpScreenState extends State<BpScreen> {
             onPressed: _measuring ? () => _watch.cancelBloodPressure(cuff: _cuff) : _start,
             child: Padding(
               padding: const EdgeInsets.all(14),
-              child: Text(_measuring ? 'ยกเลิก' : (_result == null ? 'เริ่มวัด' : 'วัดอีกครั้ง')),
+              child: Text(_measuring ? tr('cancel') : (_result == null ? tr('start_measure') : tr('measure_again'))),
             ),
           ),
         ]),
@@ -132,14 +130,13 @@ class _ResultView extends StatelessWidget {
     return Column(children: [
       Text('${r.systolic}/${r.diastolic}', style: t.displayMedium?.copyWith(fontWeight: FontWeight.bold)),
       const Text('mmHg'),
-      if (r.pulse != null && r.pulse! > 0) Text('ชีพจร ${r.pulse} ครั้ง/นาที', style: t.titleMedium),
+      if (r.pulse != null && r.pulse! > 0) Text('${tr('pulse_label')} ${r.pulse} ${tr('beats_per_min')}', style: t.titleMedium),
       const SizedBox(height: 10),
       Chip(label: Text(c.label, style: TextStyle(color: c.color, fontWeight: FontWeight.bold))),
       if (r.systolic >= 180 || r.diastolic >= 110)
-        const Padding(
-          padding: EdgeInsets.only(top: 8),
-          child: Text('ค่าสูงมาก: นั่งพัก 5 นาทีแล้ววัดซ้ำ หากยังสูงหรือมีอาการ เช่น ปวดศีรษะรุนแรง เจ็บหน้าอก '
-              'แขนขาอ่อนแรง ให้ติดต่อแพทย์หรือโทร 1669 ทันที', textAlign: TextAlign.center),
+        Padding(
+          padding: const EdgeInsets.only(top: 8),
+          child: Text(tr('bp_critical_warning'), textAlign: TextAlign.center),
         ),
     ]);
   }

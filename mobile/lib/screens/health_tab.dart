@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../app_state.dart';
+import '../l10n/app_strings.dart';
+import '../l10n/language_picker.dart';
 import '../theme/ilife_theme.dart';
 import '../watch/watch_models.dart';
 import 'bp_screen.dart';
@@ -50,13 +52,14 @@ class HealthTab extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('สุขภาพ'),
+        title: Text(tr('tab_health')),
         actions: [
-          const Center(child: ILifeLogo(fontSize: 20, showSubtitle: false)),
-          const SizedBox(width: 8),
+          const Center(child: ILifeLogo(fontSize: 19, showSubtitle: false)),
+          const SizedBox(width: 6),
+          const LanguagePickerButton(),
           IconButton(
             onPressed: () => onSwitchTab(3),
-            tooltip: 'เชื่อมต่อนาฬิกา F520Pro',
+            tooltip: tr('connect_watch_tooltip'),
             icon: Icon(
               Icons.watch,
               color: ready ? ILifeTheme.teal : ILifeTheme.magenta,
@@ -95,7 +98,7 @@ class HealthTab extends StatelessWidget {
               ),
               const SizedBox(height: 4),
               Text(
-                'กำลังดึงข้อมูลจากนาฬิกา F520Pro ${(syncProgress! * 100).round()}%',
+                '${tr('syncing_pct')} ${(syncProgress! * 100).round()}%',
                 style: const TextStyle(fontSize: 12, color: ILifeTheme.textSecondary),
               ),
             ],
@@ -117,7 +120,10 @@ class HealthTab extends StatelessWidget {
             ),
             if (s.alerts.isNotEmpty) ...[
               const SizedBox(height: 16),
-              const Text('การแจ้งเตือนจากระบบดูแล', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: ILifeTheme.navy)),
+              Text(
+                tr('care_alerts_title'),
+                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: ILifeTheme.navy),
+              ),
               const SizedBox(height: 8),
               ...s.alerts.take(5).map((a) => Padding(
                     padding: const EdgeInsets.only(bottom: 8),
@@ -125,15 +131,15 @@ class HealthTab extends StatelessWidget {
                       color: a['level'] == 'critical' ? const Color(0xFFFDECEA) : const Color(0xFFFFF4E5),
                       child: ListTile(
                         leading: const Icon(Icons.warning_amber, color: ILifeTheme.magenta),
-                        title: Text(a['message']?.toString() ?? ''),
+                        title: Text(translateAlertMessage(a['message']?.toString() ?? '')),
                       ),
                     ),
                   )),
             ],
             const SizedBox(height: 20),
-            const Text(
-              'ค่าที่วัดจากนาฬิกา F520Pro ใช้ติดตามสุขภาพเบื้องต้น ไม่ใช้แทนการวินิจฉัยของแพทย์',
-              style: TextStyle(fontSize: 11, color: ILifeTheme.textSecondary),
+            Text(
+              tr('medical_disclaimer'),
+              style: const TextStyle(fontSize: 11, color: ILifeTheme.textSecondary),
               textAlign: TextAlign.center,
             ),
           ],

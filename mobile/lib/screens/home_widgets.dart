@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../l10n/app_strings.dart';
 import '../watch/watch_models.dart';
 import 'bp_category.dart';
 
@@ -26,9 +27,9 @@ class ConnectionBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final (text, color) = switch (conn) {
-      WatchConnection.ready => ('เชื่อมต่อนาฬิกาแล้ว', const Color(0xFF188038)),
-      WatchConnection.connecting || WatchConnection.connected => ('กำลังเชื่อมต่อ...', const Color(0xFFC9A100)),
-      _ => ('ไม่ได้เชื่อมต่อนาฬิกา', const Color(0xFF5F6368)),
+      WatchConnection.ready => (tr('conn_ready'), const Color(0xFF188038)),
+      WatchConnection.connecting || WatchConnection.connected => (tr('conn_connecting'), const Color(0xFFC9A100)),
+      _ => (tr('conn_disconnected'), const Color(0xFF5F6368)),
     };
     String? bat;
     if (battery != null) {
@@ -40,7 +41,7 @@ class ConnectionBar extends StatelessWidget {
       Expanded(child: Text(org?.isNotEmpty == true ? '$text · $org' : text)),
       if (bat != null) ...[const Icon(Icons.battery_std, size: 18), Text(bat)],
       if (conn == WatchConnection.disconnected || conn == WatchConnection.failed)
-        TextButton(onPressed: onRetry, child: const Text('ลองใหม่')),
+        TextButton(onPressed: onRetry, child: Text(tr('retry'))),
     ]);
   }
 }
@@ -53,17 +54,17 @@ class BpCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = Theme.of(context).textTheme;
     if (bp == null) {
-      return const Card(child: Padding(padding: EdgeInsets.all(20), child: Text('ยังไม่มีข้อมูลความดัน')));
+      return Card(child: Padding(padding: const EdgeInsets.all(20), child: Text(tr('no_bp_data'))));
     }
     final c = BpCategory.of(bp!.systolic, bp!.diastolic);
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(20),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text('ความดันล่าสุด', style: t.titleSmall),
+          Text(tr('latest_bp'), style: t.titleSmall),
           const SizedBox(height: 4),
           Text('${bp!.systolic}/${bp!.diastolic}', style: t.displaySmall?.copyWith(fontWeight: FontWeight.bold)),
-          Text('mmHg${bp!.pulse != null ? ' · ชีพจร ${bp!.pulse}' : ''}'),
+          Text('mmHg${bp!.pulse != null ? ' · ${tr('pulse_label')} ${bp!.pulse}' : ''}'),
           const SizedBox(height: 8),
           Chip(label: Text(c.label), backgroundColor: c.color.withAlpha(38)),
           Text(formatShortDateTime(bp!.measuredAt), style: t.bodySmall),

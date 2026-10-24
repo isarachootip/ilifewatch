@@ -17,15 +17,24 @@ class WatchCareApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'iLife Watch',
-      debugShowCheckedModeBanner: false,
-      theme: ILifeTheme.buildTheme(),
-      builder: (context, child) => MediaQuery(
-        data: MediaQuery.of(context).copyWith(textScaler: const TextScaler.linear(1.05)),
-        child: child ?? const SizedBox.shrink(),
-      ),
-      home: const MainShell(),
+    return ListenableBuilder(
+      listenable: AppState.instance,
+      builder: (context, _) {
+        final lang = AppState.instance.language;
+        return MaterialApp(
+          title: 'iLife Watch',
+          debugShowCheckedModeBanner: false,
+          theme: ILifeTheme.buildTheme(),
+          builder: (context, child) => Directionality(
+            textDirection: lang.direction,
+            child: MediaQuery(
+              data: MediaQuery.of(context).copyWith(textScaler: const TextScaler.linear(1.05)),
+              child: child ?? const SizedBox.shrink(),
+            ),
+          ),
+          home: const MainShell(),
+        );
+      },
     );
   }
 }

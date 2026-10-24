@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../app_state.dart';
+import '../l10n/app_strings.dart';
 import '../services/sync_service.dart';
 import '../theme/ilife_theme.dart';
 import '../watch/watch_models.dart';
@@ -13,7 +14,7 @@ import 'health_tab.dart';
 import 'ilife_care_tab.dart';
 import 'profile_tab.dart';
 
-/// โครงสร้างหลัก 5 แท็บสไตล์ Huawei Health + ธีมสี iLife Care
+/// โครงสร้างหลัก 5 แท็บสไตล์ Huawei Health + ธีมสี iLife Care (รองรับ 5 ภาษา)
 class MainShell extends StatefulWidget {
   const MainShell({super.key});
 
@@ -80,13 +81,13 @@ class _MainShellState extends State<MainShell> {
       await SyncService.instance.syncAll();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('ซิงค์ข้อมูลจากนาฬิกา F520Pro เรียบร้อย')),
+          SnackBar(content: Text(tr('sync_ok'))),
         );
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('ซิงค์ไม่สำเร็จ: $e')),
+          SnackBar(content: Text('${tr('sync_fail')}: $e')),
         );
       }
     }
@@ -118,31 +119,31 @@ class _MainShellState extends State<MainShell> {
             onDestinationSelected: (i) => setState(() => _tab = i),
             backgroundColor: Colors.white,
             indicatorColor: ILifeTheme.magentaLight,
-            destinations: const [
+            destinations: [
               NavigationDestination(
-                icon: Icon(Icons.favorite_border),
-                selectedIcon: Icon(Icons.favorite, color: ILifeTheme.magenta),
-                label: 'สุขภาพ',
+                icon: const Icon(Icons.favorite_border),
+                selectedIcon: const Icon(Icons.favorite, color: ILifeTheme.magenta),
+                label: tr('tab_health'),
               ),
               NavigationDestination(
-                icon: Icon(Icons.directions_run_outlined),
-                selectedIcon: Icon(Icons.directions_run, color: ILifeTheme.magenta),
-                label: 'ออกกำลังกาย',
+                icon: const Icon(Icons.directions_run_outlined),
+                selectedIcon: const Icon(Icons.directions_run, color: ILifeTheme.magenta),
+                label: tr('tab_exercise'),
               ),
               NavigationDestination(
-                icon: Icon(Icons.water_drop_outlined),
-                selectedIcon: Icon(Icons.water_drop, color: ILifeTheme.magenta),
-                label: 'iLife Care',
+                icon: const Icon(Icons.water_drop_outlined),
+                selectedIcon: const Icon(Icons.water_drop, color: ILifeTheme.magenta),
+                label: tr('tab_care'),
               ),
               NavigationDestination(
-                icon: Icon(Icons.watch_outlined),
-                selectedIcon: Icon(Icons.watch, color: ILifeTheme.magenta),
-                label: 'อุปกรณ์',
+                icon: const Icon(Icons.watch_outlined),
+                selectedIcon: const Icon(Icons.watch, color: ILifeTheme.magenta),
+                label: tr('tab_devices'),
               ),
               NavigationDestination(
-                icon: Icon(Icons.person_outline),
-                selectedIcon: Icon(Icons.person, color: ILifeTheme.magenta),
-                label: 'ฉัน',
+                icon: const Icon(Icons.person_outline),
+                selectedIcon: const Icon(Icons.person, color: ILifeTheme.magenta),
+                label: tr('tab_profile'),
               ),
             ],
           ),
