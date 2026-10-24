@@ -34,6 +34,7 @@ class SyncService {
   Future<void> syncAll() async {
     if (_running) return;
     _running = true;
+    _state.resetStepsForSync();
     final bp = <Map<String, dynamic>>[];
     final ecg = <Map<String, dynamic>>[];
     final vitals = <Map<String, dynamic>>[];
@@ -64,17 +65,21 @@ class SyncService {
         case 'vitals':
           for (final s in (e['samples'] as List)) {
             final m = Map<String, dynamic>.from(s as Map);
-            final v = VitalSample(parseWatchTime(m['at']), m['metric'] as String, (m['value'] as num).toDouble());
+            final at = parseWatchTime(m['at']);
+            final v = VitalSample(at, m['metric'] as String, (m['value'] as num).toDouble());
             vitals.add(v.toJson());
-            _state.setVital(v.metric, v.value);
+            _state.setVital(v.metric, v.value, at: at.toLocal());
           }
           break;
         case 'sleep':
+          final deep = (e['deep'] ?? 0) as int;
+          final light = (e['light'] ?? 0) as int;
+          _state.setSleep(deep: deep, light: light);
           sleep.add(SleepSession(
             start: parseWatchTime(e['start']),
             end: parseWatchTime(e['end']),
-            deepMinutes: (e['deep'] ?? 0) as int,
-            lightMinutes: (e['light'] ?? 0) as int,
+            deepMinutes: deep,
+            lightMinutes: light,
             wakeCount: (e['wake'] ?? 0) as int,
             quality: e['quality'] as int?,
             curve: e['curve'] as String?,
@@ -92,14 +97,15 @@ class SyncService {
           DateTime.now().subtract(const Duration(days: 7));
       await _watch.readWatchMeasurements(since);
       await _watch.syncHistory();
-      // รอ event ชุดสุดท้ายจาก native ให้ครบ
       await Future<void>.delayed(const Duration(milliseconds: 300));
     } finally {
       await sub.cancel();
       _running = false;
     }
 
-    await uploadPayload(bp: bp, ecg: ecg, vitals: vitals, sleep: sleep);
+    if (_state.isLoggedIn) {
+      await uploadPayload(bp: bp, ecg: ecg, vitals: vitals, sleep: sleep);
+    }
     await _state.markSynced(started);
     progress.add(1.0);
   }
@@ -111,6 +117,7 @@ class SyncService {
     List<Map<String, dynamic>> vitals = const [],
     List<Map<String, dynamic>> sleep = const [],
   }) async {
+    if (!_state.isLoggedIn) return;
     if (bp.isEmpty && ecg.isEmpty && vitals.isEmpty && sleep.isEmpty) {
       _state.addAlerts(await _queue.flush(_state.api));
       return;

@@ -4,12 +4,11 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'data/api_client.dart';
 import 'watch/watch_models.dart';
 
-/// สถานะของแอป: บัญชีผู้ใช้, นาฬิกาที่จับคู่, ค่าล่าสุด
+/// สถานะของแอป: บัญชีผู้ใช้, นาฬิกาที่จับคู่, ค่าล่าสุดจากนาฬิกา F520Pro
 class AppState extends ChangeNotifier {
   AppState._();
   static final AppState instance = AppState._();
 
-  // เปลี่ยนเป็น URL ของ backend จริงก่อนใช้งาน
   static const defaultServer = 'https://ilifewatch.online';
 
   String server = defaultServer;
@@ -25,9 +24,23 @@ class AppState extends ChangeNotifier {
   BpReading? latestBp;
   int? latestHeartRate;
   int? latestSpo2;
+  double? latestTemperature;
+  int todaySteps = 0;
+  int latestSleepMinutes = 0;
+  int latestDeepMinutes = 0;
+  int latestLightMinutes = 0;
   Map<String, dynamic>? battery;
   final List<BpReading> recentBp = [];
   final List<Map<String, dynamic>> alerts = [];
+
+  double get distanceKm => todaySteps * 0.0007;
+  int get caloriesKcal => (todaySteps * 0.04).round();
+  String get sleepFormatted {
+    if (latestSleepMinutes <= 0) return '00:00';
+    final h = (latestSleepMinutes ~/ 60).toString().padLeft(2, '0');
+    final m = (latestSleepMinutes % 60).toString().padLeft(2, '0');
+    return '$h:$m';
+  }
 
   late ApiClient api = ApiClient(baseUrl: server);
 
@@ -42,6 +55,8 @@ class AppState extends ChangeNotifier {
     orgType = p.getString('orgType');
     pairedMac = p.getString('pairedMac');
     pairedName = p.getString('pairedName');
+    todaySteps = p.getInt('todaySteps') ?? 0;
+    latestSleepMinutes = p.getInt('latestSleepMinutes') ?? 0;
     final ls = p.getInt('lastSync');
     lastSync = ls == null ? null : DateTime.fromMillisecondsSinceEpoch(ls);
     if (p.containsKey('heightCm')) {
@@ -104,6 +119,8 @@ class AppState extends ChangeNotifier {
     lastSync = t;
     final p = await SharedPreferences.getInstance();
     await p.setInt('lastSync', t.millisecondsSinceEpoch);
+    await p.setInt('todaySteps', todaySteps);
+    await p.setInt('latestSleepMinutes', latestSleepMinutes);
     notifyListeners();
   }
 
@@ -113,12 +130,31 @@ class AppState extends ChangeNotifier {
     recentBp.sort((a, b) => b.measuredAt.compareTo(a.measuredAt));
     if (recentBp.length > 50) recentBp.removeRange(50, recentBp.length);
     latestBp = recentBp.first;
+    if (r.pulse != null && r.pulse! > 0) latestHeartRate = r.pulse;
     notifyListeners();
   }
 
-  void setVital(String metric, double v) {
+  void setVital(String metric, double v, {DateTime? at}) {
     if (metric == 'heart_rate') latestHeartRate = v.round();
     if (metric == 'spo2') latestSpo2 = v.round();
+    if (metric == 'temperature') latestTemperature = v;
+    if (metric == 'steps') {
+      final now = DateTime.now();
+      if (at == null || (at.year == now.year && at.month == now.month && at.day == now.day)) {
+        todaySteps += v.round();
+      }
+    }
+    notifyListeners();
+  }
+
+  void resetStepsForSync() {
+    todaySteps = 0;
+  }
+
+  void setSleep({required int deep, required int light}) {
+    latestDeepMinutes = deep;
+    latestLightMinutes = light;
+    latestSleepMinutes = deep + light;
     notifyListeners();
   }
 

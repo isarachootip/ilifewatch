@@ -4,9 +4,21 @@ import 'package:ite_watch_care/screens/bp_category.dart';
 import 'package:ite_watch_care/watch/watch_models.dart';
 
 void main() {
-  testWidgets('WatchCareApp renders SetupScreen without TextStyle assertion error', (tester) async {
+  testWidgets('WatchCareApp renders 5-tab iLife Watch shell and switches tabs', (tester) async {
     await tester.pumpWidget(const WatchCareApp());
-    expect(find.text('ลงทะเบียนใช้งาน'), findsOneWidget);
+    expect(find.text('สุขภาพ'), findsWidgets);
+    expect(find.text('ออกกำลังกาย'), findsOneWidget);
+    expect(find.text('iLife Care'), findsOneWidget);
+    expect(find.text('อุปกรณ์'), findsOneWidget);
+    expect(find.text('ฉัน'), findsOneWidget);
+
+    await tester.tap(find.text('iLife Care'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('น้ำดื่มอัลคาไลน์'), findsWidgets);
+
+    await tester.tap(find.text('อุปกรณ์'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('F520Pro'), findsWidgets);
   });
 
   test('BpCategory classifies readings according to Thai hypertension guidelines', () {

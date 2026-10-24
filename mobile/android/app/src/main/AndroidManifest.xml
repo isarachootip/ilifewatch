@@ -16,7 +16,7 @@
     <uses-feature android:name="android.hardware.bluetooth_le" android:required="true" />
 
     <application
-        android:label="ITE Watch Care"
+        android:label="iLife Watch"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher"
         android:usesCleartextTraffic="true"

@@ -31,6 +31,7 @@ class _SetupScreenState extends State<SetupScreen> {
     try {
       final res = await s.api.login(_code.text.trim(), _pin.text.trim());
       await s.applyLogin(res);
+      if (mounted && Navigator.canPop(context)) Navigator.pop(context);
     } catch (e) {
       setState(() => _error = 'เข้าสู่ระบบไม่สำเร็จ: $e');
     } finally {

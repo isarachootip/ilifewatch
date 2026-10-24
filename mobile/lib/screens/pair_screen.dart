@@ -62,6 +62,7 @@ class _PairScreenState extends State<PairScreen> {
       await WatchService.instance.connect(w.mac);
       await AppState.instance.setPaired(w.mac, w.name);
       unawaited(SyncService.instance.afterConnect());
+      if (mounted && Navigator.canPop(context)) Navigator.pop(context);
     } catch (e) {
       setState(() => _error = 'เชื่อมต่อไม่สำเร็จ ลองให้นาฬิกาอยู่ใกล้โทรศัพท์แล้วลองใหม่');
     } finally {
