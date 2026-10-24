@@ -134,3 +134,36 @@ def test_admin_creates_patient(client):
 def test_patient_token_cannot_call_staff_api(client):
     h = patient_token(client)
     assert client.get("/v1/staff/alerts", headers=h).status_code == 403
+
+
+def test_dashboard_extended_summary_and_static_assets(client):
+    hp = patient_token(client)
+    r = client.post(
+        "/v1/ingest",
+        headers=hp,
+        json={
+            "vitals": [
+                {"at": now(-3), "metric": "temperature", "value": 36.7},
+                {"at": now(-2), "metric": "steps", "value": 5420},
+            ]
+        },
+    )
+    assert r.status_code == 200
+    hs = staff_token(client, "care@demo.local")
+    pts = client.get("/v1/staff/patients", headers=hs).json()
+    pid = next(p["id"] for p in pts if p["latest_bp"] is not None)
+    summary = client.get(f"/v1/staff/patients/{pid}/summary", headers=hs).json()
+    assert summary["latest_temperature"]["value"] == 36.7
+    assert summary["latest_steps"]["value"] == 5420
+    assert summary["latest_sleep"]["deep_minutes"] == 120
+
+    dash = client.get("/dashboard")
+    assert dash.status_code == 200
+    assert "langSelect" in dash.text
+    for asset in ("/static/i18n.js", "/static/charts.js", "/static/dashboard.js"):
+        res = client.get(asset)
+        assert res.status_code == 200, asset
+    i18n_txt = client.get("/static/i18n.js").text
+    for lang in ("th:", "en:", "zh:", "ar:", "de:"):
+        assert lang in i18n_txt
+

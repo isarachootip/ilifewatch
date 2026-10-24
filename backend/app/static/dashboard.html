@@ -3,30 +3,42 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Watch Care Dashboard</title>
+<title>iLife Watch · Staff Dashboard</title>
 <style>
 :root{--bg:#f6f7f9;--card:#fff;--ink:#1d2329;--muted:#5f6b76;--line:#e2e6ea;--accent:#0e7c86;--crit:#b3261e;--warn:#c25e00;--ok:#188038;--soft:#eef6f7}
 @media (prefers-color-scheme:dark){:root{--bg:#111416;--card:#1b2024;--ink:#e6eaed;--muted:#9aa5ae;--line:#2c3439;--accent:#4fb3bc;--crit:#f2867f;--warn:#f0a35c;--ok:#6fcf8f;--soft:#1f2a2d}}
-*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 system-ui,-apple-system,"Segoe UI","Noto Sans Thai",sans-serif}
-header{display:flex;gap:12px;align-items:center;padding:12px 16px;background:var(--card);border-bottom:1px solid var(--line)}
-header h1{font-size:17px;margin:0;flex:1}main{max-width:1100px;margin:0 auto;padding:16px}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 system-ui,-apple-system,"Segoe UI","Noto Sans Thai","Noto Sans SC","Noto Sans Arabic",sans-serif}
+header{display:flex;gap:12px;align-items:center;padding:12px 16px;background:var(--card);border-bottom:1px solid var(--line);flex-wrap:wrap}
+header h1{font-size:17px;margin:0;flex:1}main{max-width:1120px;margin:0 auto;padding:16px}
 .card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px;margin-bottom:16px}
 button{font:inherit;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:8px;padding:6px 12px;cursor:pointer}
 button.primary{background:var(--accent);border-color:var(--accent);color:#fff}input,textarea,select{font:inherit;padding:8px;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--ink);width:100%}
+#langSelect{width:auto;padding:5px 10px;font-size:14px}
 nav{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap}nav button.on{background:var(--soft);border-color:var(--accent)}
-table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:8px;border-bottom:1px solid var(--line);vertical-align:top}th{color:var(--muted);font-weight:500;font-size:13px}
-a{color:var(--accent)}tr.click{cursor:pointer}tr.click:hover{background:var(--soft)}.muted{color:var(--muted)}.crit{color:var(--crit);font-weight:600}.warn{color:var(--warn);font-weight:600}.ok{color:var(--ok)}
+table{width:100%;border-collapse:collapse}th,td{text-align:start;padding:8px;border-bottom:1px solid var(--line);vertical-align:top}th{color:var(--muted);font-weight:500;font-size:13px}
+a{color:var(--accent)}tr.click{cursor:pointer}tr.click:hover{background:var(--soft)}.muted{color:var(--muted)}.crit{color:var(--crit);font-weight:600}.warn{color:var(--warn);font-weight:600}.ok{color:var(--ok);font-weight:600}
 .badge{display:inline-block;min-width:22px;text-align:center;padding:0 6px;border-radius:10px;background:var(--crit);color:#fff;font-size:12px}
-.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px}.stat .v{font-size:26px;font-weight:700}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(165px,1fr));gap:12px}.stat .v{font-size:24px;font-weight:700}
 .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.hidden{display:none}svg text{fill:var(--muted);font-size:11px}
 .scroll{overflow-x:auto}#login{max-width:360px;margin:60px auto}
 </style>
 </head>
 <body>
-<header><h1>Watch Care · แดชบอร์ดเจ้าหน้าที่</h1><span id="who" class="muted"></span><button id="logout" class="hidden">ออกจากระบบ</button></header>
+<header>
+  <h1 id="brandTitle">iLife Watch · แดชบอร์ดเจ้าหน้าที่</h1>
+  <span id="who" class="muted"></span>
+  <select id="langSelect" aria-label="Language">
+    <option value="th">🇹🇭 ไทย</option>
+    <option value="en">🇬🇧 English</option>
+    <option value="zh">🇨🇳 中文</option>
+    <option value="ar">🇸🇦 العربية</option>
+    <option value="de">🇩🇪 Deutsch</option>
+  </select>
+  <button id="logout" class="hidden">ออกจากระบบ</button>
+</header>
 <main>
   <section id="login" class="card">
-    <h2 style="margin-top:0">เข้าสู่ระบบ</h2>
+    <h2 id="loginHeading" style="margin-top:0">เข้าสู่ระบบ</h2>
     <p><input id="email" placeholder="อีเมล" autocomplete="username"></p>
     <p><input id="pw" type="password" placeholder="รหัสผ่าน" autocomplete="current-password"></p>
     <p><button class="primary" id="go">เข้าสู่ระบบ</button> <span id="lerr" class="crit"></span></p>
@@ -37,150 +49,8 @@ a{color:var(--accent)}tr.click{cursor:pointer}tr.click:hover{background:var(--so
     <div id="view"></div>
   </section>
 </main>
-<script>
-const $ = s => document.querySelector(s);
-let S = null; try { S = JSON.parse(sessionStorage.getItem('wc_session')||'null') } catch(e) {}
-const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const fmt = iso => iso ? new Date(iso).toLocaleString('th-TH',{dateStyle:'short',timeStyle:'short'}) : '-';
-const bpCls = (s,d) => (s>=180||d>=110)?'crit':(s>=140||d>=90)?'warn':'ok';
-
-async function api(path, opt={}) {
-  const r = await fetch(path, {...opt, headers:{'Content-Type':'application/json', ...(S?{Authorization:'Bearer '+S.token}:{})}});
-  const j = await r.json().catch(()=>({}));
-  if (r.status === 401) { logout(); throw new Error('กรุณาเข้าสู่ระบบใหม่'); }
-  if (!r.ok) throw new Error(j.detail || ('HTTP '+r.status));
-  return j;
-}
-function logout(){ S=null; try{sessionStorage.removeItem('wc_session')}catch(e){} render(); }
-$('#logout').onclick = logout;
-$('#go').onclick = async () => {
-  $('#lerr').textContent='';
-  try { S = await api('/v1/staff/login',{method:'POST',body:JSON.stringify({email:$('#email').value,password:$('#pw').value})});
-        try{sessionStorage.setItem('wc_session',JSON.stringify(S))}catch(e){} render(); }
-  catch(e){ $('#lerr').textContent = e.message; }
-};
-
-function tabsFor(){
-  const r = S.staff.role, corp = S.org.type==='corporate';
-  const t = [];
-  if (r!=='hr_viewer' && !(corp && r==='admin')) t.push(['alerts','แจ้งเตือน'],['patients','ผู้ใช้นาฬิกา']);
-  if (r==='clinician' || (r!=='hr_viewer' && S.org.type==='clinic')) t.push(['ecg','คิวตรวจ ECG']);
-  if (corp || r==='admin') t.push(['agg','ภาพรวมองค์กร']);
-  if (r==='admin') t.push(['add','เพิ่มผู้ใช้']);
-  return t;
-}
-let cur = null;
-function render(){
-  const on = !!S;
-  $('#login').classList.toggle('hidden', on); $('#app').classList.toggle('hidden', !on); $('#logout').classList.toggle('hidden', !on);
-  if (!on) { $('#who').textContent=''; return; }
-  $('#who').textContent = `${S.staff.name} · ${S.org.name}`;
-  const t = tabsFor(); if (!cur || !t.find(x=>x[0]===cur)) cur = t[0][0];
-  $('#tabs').innerHTML = t.map(([k,l])=>`<button data-k="${k}" class="${k===cur?'on':''}">${l}</button>`).join('');
-  $('#tabs').querySelectorAll('button').forEach(b=>b.onclick=()=>{cur=b.dataset.k;render()});
-  ({alerts:viewAlerts,patients:viewPatients,ecg:viewEcgQueue,agg:viewAgg,add:viewAdd})[cur]().catch(e=>$('#view').innerHTML=`<div class="card crit">${esc(e.message)}</div>`);
-}
-
-async function viewAlerts(){
-  const a = await api('/v1/staff/alerts');
-  $('#view').innerHTML = `<div class="card"><h3 style="margin-top:0">แจ้งเตือนที่ยังไม่ได้ติดตาม (${a.length})</h3>${a.length?'':'<p class="muted">ไม่มีรายการ</p>'}
-  <div class="scroll"><table>${a.length?'<tr><th>เวลา</th><th>ผู้ใช้</th><th>รายละเอียด</th><th></th></tr>':''}
-  ${a.map(x=>`<tr><td>${fmt(x.created_at)}</td><td><a href="#" data-p="${x.patient_id}">${esc(x.patient_name)}</a></td>
-  <td class="${x.level==='critical'?'crit':'warn'}">${esc(x.message)}</td>
-  <td><button data-ack="${x.id}">ติดตามแล้ว</button></td></tr>`).join('')}</table></div></div>`;
-  $('#view').querySelectorAll('[data-ack]').forEach(b=>b.onclick=async()=>{const note=prompt('บันทึกการติดตาม (เช่น โทรสอบถามแล้ว)')??''; await api(`/v1/staff/alerts/${b.dataset.ack}/ack`,{method:'POST',body:JSON.stringify({note})}); render();});
-  $('#view').querySelectorAll('[data-p]').forEach(l=>l.onclick=e=>{e.preventDefault();viewPatient(+l.dataset.p)});
-}
-
-async function viewPatients(){
-  const ps = await api('/v1/staff/patients');
-  $('#view').innerHTML = `<div class="card"><div class="scroll"><table><tr><th>ชื่อ</th><th>ความดันล่าสุด</th><th>ซิงค์ล่าสุด</th><th>แจ้งเตือน</th></tr>
-  ${ps.map(p=>`<tr class="click" data-p="${p.id}"><td>${esc(p.display_name)}<div class="muted">${p.sex==='M'?'ชาย':'หญิง'} · เกิด ${p.birth_year}</div></td>
-  <td>${p.latest_bp?`<span class="${bpCls(p.latest_bp.systolic,p.latest_bp.diastolic)}">${p.latest_bp.systolic}/${p.latest_bp.diastolic}</span><div class="muted">${fmt(p.latest_bp.measured_at)}</div>`:'<span class="muted">-</span>'}</td>
-  <td>${fmt(p.last_sync)}</td><td>${p.open_alerts?`<span class="badge">${p.open_alerts}</span>`:''}</td></tr>`).join('')}</table></div></div>`;
-  $('#view').querySelectorAll('[data-p]').forEach(r=>r.onclick=()=>viewPatient(+r.dataset.p));
-}
-
-async function viewPatient(id){
-  const [sum, bp, hr, ecg] = await Promise.all([api(`/v1/staff/patients/${id}/summary`), api(`/v1/staff/patients/${id}/bp?days=30`),
-    api(`/v1/staff/patients/${id}/vitals?metric=heart_rate&days=3`), api(`/v1/staff/patients/${id}/ecg`)]);
-  const lb = sum.latest_bp;
-  $('#view').innerHTML = `<p><button id="back">← กลับ</button></p>
-  <div class="card"><h2 style="margin:0 0 4px">${esc(sum.patient.display_name)}</h2><div class="muted">ผู้ติดต่อฉุกเฉิน: ${esc(sum.patient.emergency_contact||'-')}</div>
-  <div class="grid" style="margin-top:12px">
-   <div class="stat"><div class="muted">ความดันล่าสุด</div><div class="v ${lb?bpCls(lb.systolic,lb.diastolic):''}">${lb?lb.systolic+'/'+lb.diastolic:'-'}</div><div class="muted">${lb?fmt(lb.measured_at)+' · '+(lb.method==='cuff'?'ปั๊มลม':'แสง'):''}</div></div>
-   <div class="stat"><div class="muted">เฉลี่ย 7 วัน</div><div class="v">${sum.bp_7d_avg?sum.bp_7d_avg.systolic+'/'+sum.bp_7d_avg.diastolic:'-'}</div><div class="muted">${sum.bp_7d_avg?sum.bp_7d_avg.n+' ครั้ง':''}</div></div>
-   <div class="stat"><div class="muted">ชีพจรล่าสุด</div><div class="v">${sum.latest_heart_rate?Math.round(sum.latest_heart_rate.value):'-'}</div></div>
-   <div class="stat"><div class="muted">SpO2 ล่าสุด</div><div class="v">${sum.latest_spo2?Math.round(sum.latest_spo2.value)+'%':'-'}</div></div>
-  </div></div>
-  <div class="card"><h3 style="margin-top:0">ความดัน 30 วัน</h3>${bpChart(bp)}</div>
-  <div class="card"><h3 style="margin-top:0">ECG</h3>${ecg.length?'':'<p class="muted">ยังไม่มี</p>'}<table>${ecg.map(e=>`<tr class="click" data-e="${e.id}"><td>${fmt(e.measured_at)}</td><td>ชีพจร ${e.avg_heart_rate??'-'} · HRV ${e.avg_hrv??'-'}</td><td>${e.review_status==='reviewed'?'<span class="ok">ตรวจแล้ว</span>':'<span class="warn">รอตรวจ</span>'}</td></tr>`).join('')}</table><div id="ecgv"></div></div>
-  <div class="card"><h3 style="margin-top:0">ชีพจร 3 วัน</h3>${lineChart(hr.map(v=>[new Date(v.at),v.value]),'ครั้ง/นาที')}</div>`;
-  $('#back').onclick = render;
-  $('#view').querySelectorAll('[data-e]').forEach(r=>r.onclick=()=>showEcg(+r.dataset.e));
-}
-
-async function showEcg(id, host='#ecgv'){
-  const e = await api(`/v1/staff/ecg/${id}`);
-  const box = $(host);
-  box.innerHTML = `<p class="muted">${fmt(e.measured_at)} · ${e.sample_rate_hz||'?'} Hz · ${e.duration_sec||'?'} วินาที · ค่าดิบจาก ADC (ยังไม่แปลงเป็น mV)</p><div class="scroll"><canvas id="ecgc" height="200"></canvas></div>
-  ${S.staff.role==='clinician'?`<p><textarea id="rnote" rows="2" placeholder="บันทึกผลอ่าน">${esc(e.review_note||'')}</textarea></p><p><button class="primary" id="rsave">บันทึกผลตรวจ</button></p>`:''}`;
-  const c = $('#ecgc'), w = e.waveform; c.width = Math.max(800, Math.min(w.length*1.5, 12000));
-  const g = c.getContext('2d'), css = getComputedStyle(document.documentElement);
-  g.strokeStyle = css.getPropertyValue('--line'); for(let x=0;x<c.width;x+=20){g.beginPath();g.moveTo(x,0);g.lineTo(x,200);g.stroke()}
-  if (w.length>1){ const lo=Math.min(...w), hi=Math.max(...w)||lo+1; g.strokeStyle=css.getPropertyValue('--crit'); g.beginPath();
-    w.forEach((v,i)=>{const x=i*c.width/(w.length-1), y=190-(v-lo)/(hi-lo||1)*180; i?g.lineTo(x,y):g.moveTo(x,y)}); g.stroke(); }
-  const b = $('#rsave'); if (b) b.onclick = async()=>{ await api(`/v1/staff/ecg/${id}/review`,{method:'POST',body:JSON.stringify({note:$('#rnote').value})}); b.textContent='บันทึกแล้ว'; };
-}
-
-async function viewEcgQueue(){
-  const q = await api('/v1/staff/ecg-queue');
-  $('#view').innerHTML = `<div class="card"><h3 style="margin-top:0">ECG รอตรวจ (${q.length})</h3><table>${q.map(e=>`<tr class="click" data-e="${e.id}"><td>${fmt(e.measured_at)}</td><td>${esc(e.patient_name)}</td><td>ชีพจร ${e.avg_heart_rate??'-'}</td></tr>`).join('')}</table><div id="ecgv"></div></div>`;
-  $('#view').querySelectorAll('[data-e]').forEach(r=>r.onclick=()=>showEcg(+r.dataset.e));
-}
-
-async function viewAgg(){
-  const a = await api('/v1/staff/org/aggregate');
-  if (a.suppressed){ $('#view').innerHTML = `<div class="card"><p>${esc(a.message)}</p><p class="muted">ผู้เข้าร่วม ${a.participants} คน</p></div>`; return; }
-  const c = a.bp_latest_30d, L = {normal:'ปกติ',elevated:'ค่อนข้างสูง',high:'สูง (≥140/90)',no_data:'ไม่มีข้อมูล'};
-  $('#view').innerHTML = `<div class="card"><p class="muted">ข้อมูลภาพรวมแบบไม่ระบุตัวตน กลุ่มที่น้อยกว่า 5 คนจะไม่แสดงตัวเลข</p><div class="grid">
-   <div class="stat"><div class="muted">ผู้เข้าร่วม</div><div class="v">${a.participants}</div></div>
-   <div class="stat"><div class="muted">ซิงค์ใน 7 วัน</div><div class="v">${a.active_last_7d}</div></div>
-   <div class="stat"><div class="muted">ก้าวเฉลี่ย/วัน</div><div class="v">${a.avg_daily_steps_7d?.toLocaleString('th-TH')??'-'}</div></div></div>
-   <h3>ระดับความดันล่าสุด (30 วัน)</h3><table>${Object.entries(L).map(([k,l])=>`<tr><td>${l}</td><td>${c[k]??0}</td></tr>`).join('')}</table></div>`;
-}
-
-function viewAdd(){
-  $('#view').innerHTML = `<div class="card" style="max-width:460px"><h3 style="margin-top:0">เพิ่มผู้ใช้นาฬิกา</h3>
-  <p><input id="n" placeholder="ชื่อที่แสดง"></p><p class="row"><select id="sx" style="width:auto"><option value="F">หญิง</option><option value="M">ชาย</option></select>
-  <input id="by" type="number" placeholder="ปีเกิด (ค.ศ.)" style="flex:1"></p><p class="row"><input id="h" type="number" placeholder="ส่วนสูง ซม." style="flex:1"><input id="w" type="number" placeholder="น้ำหนัก กก." style="flex:1"></p>
-  <p><input id="ec" placeholder="ผู้ติดต่อฉุกเฉิน (ชื่อ/เบอร์)"></p><p><button class="primary" id="save">สร้าง</button></p><div id="out"></div></div>`;
-  $('#save').onclick = async()=>{ try{ const r = await api('/v1/staff/patients',{method:'POST',body:JSON.stringify({display_name:$('#n').value,sex:$('#sx').value,birth_year:+$('#by').value,height_cm:+$('#h').value,weight_kg:+$('#w').value,emergency_contact:$('#ec').value||null})});
-    $('#out').innerHTML = `<div class="card" style="background:var(--soft)"><b>รหัสลงทะเบียน:</b> ${esc(r.enrollment_code)}<br><b>PIN:</b> ${esc(r.pin)}<p class="muted">PIN แสดงครั้งเดียว ให้ส่งให้ผู้ใช้เพื่อเข้าสู่ระบบในแอป</p></div>`; }
-    catch(e){ $('#out').innerHTML = `<p class="crit">${esc(e.message)}</p>`; } };
-  return Promise.resolve();
-}
-
-function bpChart(rows){
-  if (!rows.length) return '<p class="muted">ยังไม่มีข้อมูล</p>';
-  return lineChart(rows.map(r=>[new Date(r.measured_at),r.systolic]),'mmHg', rows.map(r=>[new Date(r.measured_at),r.diastolic]), [140,90]);
-}
-function lineChart(a, unit, b=null, refs=[]){
-  if (!a.length) return '<p class="muted">ยังไม่มีข้อมูล</p>';
-  const W=800,H=220,P=36, all=[...a,...(b||[])], t0=Math.min(...all.map(p=>+p[0])), t1=Math.max(...all.map(p=>+p[0]))||t0+1;
-  let lo=Math.min(...all.map(p=>p[1]),...refs), hi=Math.max(...all.map(p=>p[1]),...refs); lo=Math.floor(lo*0.9); hi=Math.ceil(hi*1.05);
-  const X=t=>P+((+t-t0)/((t1-t0)||1))*(W-P*1.5), Y=v=>H-P+-(v-lo)/((hi-lo)||1)*(H-P*1.6);
-  const path=s=>s.map((p,i)=>(i?'L':'M')+X(p[0]).toFixed(1)+','+Y(p[1]).toFixed(1)).join('');
-  const dots=(s,col)=>s.length<60?s.map(p=>`<circle cx="${X(p[0])}" cy="${Y(p[1])}" r="2.5" fill="${col}"/>`).join(''):'';
-  return `<div class="scroll"><svg viewBox="0 0 ${W} ${H}" width="100%" style="min-width:480px">
-  ${refs.map(r=>`<line x1="${P}" x2="${W-P/2}" y1="${Y(r)}" y2="${Y(r)}" stroke="var(--warn)" stroke-dasharray="4 4" opacity=".6"/><text x="${W-P/2-2}" y="${Y(r)-3}" text-anchor="end">${r}</text>`).join('')}
-  <text x="4" y="14">${unit}</text><text x="4" y="${Y(hi)+4}">${hi}</text><text x="4" y="${Y(lo)}">${lo}</text>
-  <text x="${P}" y="${H-8}">${new Date(t0).toLocaleDateString('th-TH')}</text><text x="${W-P/2}" y="${H-8}" text-anchor="end">${new Date(t1).toLocaleDateString('th-TH')}</text>
-  <path d="${path(a)}" fill="none" stroke="var(--crit)" stroke-width="1.8"/>${dots(a,'var(--crit)')}
-  ${b?`<path d="${path(b)}" fill="none" stroke="var(--accent)" stroke-width="1.8"/>${dots(b,'var(--accent)')}`:''}</svg></div>
-  ${b?'<div class="muted"><span class="crit">—</span> ตัวบน &nbsp; <span style="color:var(--accent)">—</span> ตัวล่าง &nbsp; เส้นประ = 140/90</div>':''}`;
-}
-render();
-</script>
+<script src="/static/i18n.js"></script>
+<script src="/static/charts.js"></script>
+<script src="/static/dashboard.js"></script>
 </body>
 </html>

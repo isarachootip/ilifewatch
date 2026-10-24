@@ -1,0 +1,185 @@
+// iLife Watch Staff Dashboard — 5-Language Localization (TH, EN, ZH, AR, DE)
+const LOCALES = { th: 'th-TH', en: 'en-US', zh: 'zh-CN', ar: 'ar-SA', de: 'de-DE' };
+
+const DICT = {
+  th: {
+    brand: 'iLife Watch · แดชบอร์ดเจ้าหน้าที่', logout: 'ออกจากระบบ', loginTitle: 'เข้าสู่ระบบ',
+    email: 'อีเมล', password: 'รหัสผ่าน', loginBtn: 'เข้าสู่ระบบ', reauth: 'กรุณาเข้าสู่ระบบใหม่',
+    tabAlerts: 'แจ้งเตือน', tabPatients: 'ผู้ใช้นาฬิกา', tabEcg: 'คิวตรวจ ECG',
+    tabAgg: 'ภาพรวมองค์กร', tabAdd: '+ เพิ่มผู้ใช้',
+    unackedAlerts: 'แจ้งเตือนที่ยังไม่ได้ติดตาม', empty: 'ไม่มีรายการ',
+    colTime: 'เวลา', colPatient: 'ผู้ใช้', colDetail: 'รายละเอียด', ackBtn: 'ติดตามแล้ว',
+    ackPrompt: 'บันทึกการติดตาม (เช่น โทรสอบถามแล้ว)',
+    colName: 'ชื่อ', colLatestBp: 'ความดันล่าสุด', colLastSync: 'ซิงค์ล่าสุด', colAlerts: 'แจ้งเตือน',
+    male: 'ชาย', female: 'หญิง', born: 'เกิด', back: '← กลับ',
+    emergencyContact: 'ผู้ติดต่อฉุกเฉิน',
+    statLatestBp: 'ความดันล่าสุด', statBp7d: 'ความดันเฉลี่ย 7 วัน', statHr: 'ชีพจรล่าสุด',
+    statSpo2: 'SpO2 ล่าสุด', statTemp: 'อุณหภูมิล่าสุด', statStepsSleep: 'ก้าวเดิน / การนอน',
+    cuff: 'ปั๊มลม', ppg: 'แสง PPG', times: 'ครั้ง', stepsUnit: 'ก้าว', sleepHrs: 'ชม. นอน',
+    chartBp30d: 'ความดันโลหิต (30 วัน)', chartEcg: 'คลื่นไฟฟ้าหัวใจ (ECG)',
+    chartHr7d: 'อัตราการเต้นหัวใจ (7 วัน)', chartSpo27d: 'ออกซิเจนในเลือด SpO2 (7 วัน)',
+    chartTemp7d: 'อุณหภูมิร่างกาย °C (7 วัน)', chartSteps14d: 'ก้าวเดิน (14 วัน)',
+    chartSleep14d: 'การนอนหลับ ลึก / ตื้น (14 วัน)',
+    noData: 'ยังไม่มีข้อมูล', bpmUnit: 'ครั้ง/นาที', reviewed: 'ตรวจแล้ว', pendingReview: 'รอตรวจ',
+    hrLabel: 'ชีพจร', secUnit: 'วินาที', adcNote: 'ค่าดิบจาก ADC (ยังไม่แปลงเป็น mV)',
+    reviewPlaceholder: 'บันทึกผลอ่านโดยแพทย์/พยาบาล', saveReview: 'บันทึกผลตรวจ', saved: 'บันทึกแล้ว',
+    ecgQueueTitle: 'รายการ ECG รอตรวจ',
+    aggNote: 'ข้อมูลภาพรวมแบบไม่ระบุตัวตน กลุ่มที่น้อยกว่า 5 คนจะไม่แสดงตัวเลข (PDPA)',
+    participants: 'ผู้เข้าร่วม', active7d: 'ซิงค์ใน 7 วัน', avgSteps7d: 'ก้าวเฉลี่ย/วัน (7 วัน)',
+    bpDist30d: 'ระดับความดันล่าสุด (30 วัน)', bpNorm: 'ปกติ (<120/80)', bpElev: 'ค่อนข้างสูง',
+    bpHigh: 'สูง (≥140/90)', bpNoData: 'ไม่มีข้อมูล',
+    addTitle: 'เพิ่มผู้ใช้นาฬิกา', displayName: 'ชื่อที่แสดง', birthYear: 'ปีเกิด (ค.ศ.)',
+    heightCm: 'ส่วนสูง ซม.', weightKg: 'น้ำหนัก กก.', emergPlaceholder: 'ผู้ติดต่อฉุกเฉิน (ชื่อ/เบอร์)',
+    createBtn: 'สร้างรหัสผู้ใช้', enrollCode: 'รหัสลงทะเบียน', pinOnce: 'PIN แสดงครั้งเดียว ให้ส่งให้ผู้ใช้เพื่อเข้าสู่ระบบในแอป',
+    sysLegend: 'ตัวบน (Systolic)', diaLegend: 'ตัวล่าง (Diastolic)', refLegend: 'เส้นประ = เกณฑ์เฝ้าระวัง',
+    deepSleep: 'หลับลึก', lightSleep: 'หลับตื้น', wakeCount: 'ตื่นกลางดึก', minUnit: 'นาที'
+  },
+  en: {
+    brand: 'iLife Watch · Staff Dashboard', logout: 'Sign Out', loginTitle: 'Staff Sign In',
+    email: 'Email', password: 'Password', loginBtn: 'Sign In', reauth: 'Please sign in again',
+    tabAlerts: 'Alerts', tabPatients: 'Patients', tabEcg: 'ECG Queue',
+    tabAgg: 'Org Overview', tabAdd: '+ Add Patient',
+    unackedAlerts: 'Unacknowledged Alerts', empty: 'No records',
+    colTime: 'Time', colPatient: 'Patient', colDetail: 'Details', ackBtn: 'Acknowledge',
+    ackPrompt: 'Follow-up note (e.g., called patient)',
+    colName: 'Name', colLatestBp: 'Latest BP', colLastSync: 'Last Sync', colAlerts: 'Alerts',
+    male: 'Male', female: 'Female', born: 'Born', back: '← Back',
+    emergencyContact: 'Emergency Contact',
+    statLatestBp: 'Latest BP', statBp7d: '7-Day Avg BP', statHr: 'Latest Heart Rate',
+    statSpo2: 'Latest SpO2', statTemp: 'Body Temp', statStepsSleep: 'Steps / Sleep',
+    cuff: 'Air Cuff', ppg: 'Optical PPG', times: 'readings', stepsUnit: 'steps', sleepHrs: 'h sleep',
+    chartBp30d: 'Blood Pressure (30 Days)', chartEcg: 'ECG Recordings',
+    chartHr7d: 'Heart Rate (7 Days)', chartSpo27d: 'Blood Oxygen SpO2 (7 Days)',
+    chartTemp7d: 'Body Temperature °C (7 Days)', chartSteps14d: 'Steps History (14 Days)',
+    chartSleep14d: 'Sleep Stages Deep / Light (14 Days)',
+    noData: 'No data yet', bpmUnit: 'bpm', reviewed: 'Reviewed', pendingReview: 'Pending',
+    hrLabel: 'HR', secUnit: 'sec', adcNote: 'Raw ADC waveform',
+    reviewPlaceholder: 'Clinician review note', saveReview: 'Save Review', saved: 'Saved',
+    ecgQueueTitle: 'Pending ECG Queue',
+    aggNote: 'Anonymized organization aggregate. Groups < 5 people are suppressed (PDPA).',
+    participants: 'Participants', active7d: 'Active (7d)', avgSteps7d: 'Avg Daily Steps (7d)',
+    bpDist30d: 'Latest BP Category (30 Days)', bpNorm: 'Normal (<120/80)', bpElev: 'Elevated',
+    bpHigh: 'High (≥140/90)', bpNoData: 'No Data',
+    addTitle: 'Register Watch User', displayName: 'Display Name', birthYear: 'Birth Year (YYYY)',
+    heightCm: 'Height (cm)', weightKg: 'Weight (kg)', emergPlaceholder: 'Emergency Contact (Name / Phone)',
+    createBtn: 'Create User', enrollCode: 'Enrollment Code', pinOnce: 'PIN is shown once. Share with the user to sign in on mobile.',
+    sysLegend: 'Systolic', diaLegend: 'Diastolic', refLegend: 'Dashed = Threshold',
+    deepSleep: 'Deep', lightSleep: 'Light', wakeCount: 'Wake', minUnit: 'min'
+  },
+  zh: {
+    brand: 'iLife Watch · 医护管理后台', logout: '退出登录', loginTitle: '工作人员登录',
+    email: '电子邮箱', password: '密码', loginBtn: '登录', reauth: '请重新登录',
+    tabAlerts: '预警通知', tabPatients: '手表用户', tabEcg: 'ECG待审队列',
+    tabAgg: '机构总览', tabAdd: '+ 新增用户',
+    unackedAlerts: '未处理的预警', empty: '暂无记录',
+    colTime: '时间', colPatient: '用户', colDetail: '详情', ackBtn: '标记已跟进',
+    ackPrompt: '跟进备注（例如：已电话回访）',
+    colName: '姓名', colLatestBp: '最近血压', colLastSync: '最近同步', colAlerts: '预警',
+    male: '男', female: '女', born: '生于', back: '← 返回',
+    emergencyContact: '紧急联系人',
+    statLatestBp: '最近血压', statBp7d: '7天平均血压', statHr: '最近心率',
+    statSpo2: '最近血氧 SpO2', statTemp: '最近体温', statStepsSleep: '步数 / 睡眠',
+    cuff: '气囊袖带', ppg: '光学PPG', times: '次', stepsUnit: '步', sleepHrs: '小时睡眠',
+    chartBp30d: '血压趋势 (30天)', chartEcg: '心电图记录 (ECG)',
+    chartHr7d: '心率趋势 (7天)', chartSpo27d: '血氧饱和度 SpO2 (7天)',
+    chartTemp7d: '体温变化 °C (7天)', chartSteps14d: '步数记录 (14天)',
+    chartSleep14d: '睡眠阶段 深睡 / 浅睡 (14天)',
+    noData: '暂无数据', bpmUnit: '次/分', reviewed: '已审核', pendingReview: '待审核',
+    hrLabel: '心率', secUnit: '秒', adcNote: 'ADC原始波形数据',
+    reviewPlaceholder: '填写医生/护士诊断意见', saveReview: '保存诊断', saved: '已保存',
+    ecgQueueTitle: '待审核心电图 (ECG)',
+    aggNote: '匿名机构汇总数据，少于5人的组别不显示具体人数。',
+    participants: '参与人数', active7d: '7天内活跃', avgSteps7d: '日均步数 (7天)',
+    bpDist30d: '最近30天血压分布', bpNorm: '正常 (<120/80)', bpElev: '偏高',
+    bpHigh: '高血压 (≥140/90)', bpNoData: '无数据',
+    addTitle: '新增手表用户', displayName: '显示姓名', birthYear: '出生年份 (如1955)',
+    heightCm: '身高 (cm)', weightKg: '体重 (kg)', emergPlaceholder: '紧急联系人（姓名/电话）',
+    createBtn: '创建用户', enrollCode: '注册码', pinOnce: 'PIN码仅显示一次，请发送给用户在手机App登录',
+    sysLegend: '收缩压 (高压)', diaLegend: '舒张压 (低压)', refLegend: '虚线 = 警戒线',
+    deepSleep: '深睡', lightSleep: '浅睡', wakeCount: '清醒次数', minUnit: '分钟'
+  },
+  ar: {
+    brand: 'iLife Watch · لوحة تحكم الطاقم الطبي', logout: 'تسجيل الخروج', loginTitle: 'تسجيل الدخول',
+    email: 'البريد الإلكتروني', password: 'كلمة المرور', loginBtn: 'دخول', reauth: 'يرجى تسجيل الدخول مرة أخرى',
+    tabAlerts: 'التنبيهات', tabPatients: 'مستخدمو الساعة', tabEcg: 'طابور تخطيط القلب',
+    tabAgg: 'نظرة عامة للمؤسسة', tabAdd: '+ إضافة مستخدم',
+    unackedAlerts: 'تنبيهات قيد المتابعة', empty: 'لا توجد سجلات',
+    colTime: 'الوقت', colPatient: 'المستخدم', colDetail: 'التفاصيل', ackBtn: 'تمت المتابعة',
+    ackPrompt: 'ملاحظة المتابعة (مثل: تم الاتصال بالمريض)',
+    colName: 'الاسم', colLatestBp: 'آخر ضغط دم', colLastSync: 'آخر مزامنة', colAlerts: 'التنبيهات',
+    male: 'ذكر', female: 'أنثى', born: 'مواليد', back: '→ رجوع',
+    emergencyContact: 'جهة اتصال الطوارئ',
+    statLatestBp: 'آخر ضغط دم', statBp7d: 'متوسط الضغط (7 أيام)', statHr: 'آخر نبض',
+    statSpo2: 'أكسجين الدم SpO2', statTemp: 'درجة الحرارة', statStepsSleep: 'الخطوات / النوم',
+    cuff: 'كفة هوائية', ppg: 'مستشعر ضوئي', times: 'قراءات', stepsUnit: 'خطوة', sleepHrs: 'ساعة نوم',
+    chartBp30d: 'ضغط الدم (30 يوماً)', chartEcg: 'تخطيط القلب الكهربائي (ECG)',
+    chartHr7d: 'معدل نبضات القلب (7 أيام)', chartSpo27d: 'أكسجين الدم SpO2 (7 أيام)',
+    chartTemp7d: 'درجة حرارة الجسم °C (7 أيام)', chartSteps14d: 'سجل الخطوات (14 يوماً)',
+    chartSleep14d: 'مراحل النوم العميق / الخفيف (14 يوماً)',
+    noData: 'لا توجد بيانات بعد', bpmUnit: 'نبضة/د', reviewed: 'تمت المراجعة', pendingReview: 'قيد الانتظار',
+    hrLabel: 'النبض', secUnit: 'ثانية', adcNote: 'إشارة ADC خام',
+    reviewPlaceholder: 'ملاحظة الطبيب / الممرض', saveReview: 'حفظ التقييم', saved: 'تم الحفظ',
+    ecgQueueTitle: 'تخطيطات القلب بانتظار المراجعة',
+    aggNote: 'بيانات مجمعة مجهولة الهوية. يتم إخفاء المجموعات الأقل من 5 أشخاص.',
+    participants: 'المشاركون', active7d: 'نشط خلال 7 أيام', avgSteps7d: 'متوسط الخطوات اليومي',
+    bpDist30d: 'توزيع ضغط الدم (30 يوماً)', bpNorm: 'طبيعي (<120/80)', bpElev: 'مرتفع قليلاً',
+    bpHigh: 'مرتفع (≥140/90)', bpNoData: 'لا توجد بيانات',
+    addTitle: 'إضافة مستخدم ساعة جديد', displayName: 'الاسم المعروض', birthYear: 'سنة الميلاد',
+    heightCm: 'الطول (سم)', weightKg: 'الوزن (كجم)', emergPlaceholder: 'جهة اتصال الطوارئ (الاسم/الهاتف)',
+    createBtn: 'إنشاء حساب', enrollCode: 'رمز التسجيل', pinOnce: 'يظهر الرمز السري مرة واحدة فقط لإدخاله في تطبيق الهاتف',
+    sysLegend: 'الانقباضي', diaLegend: 'الانبساطي', refLegend: 'خط متقطع = الحد التحذيري',
+    deepSleep: 'نوم عميق', lightSleep: 'نوم خفيف', wakeCount: 'مرات الاستيقاظ', minUnit: 'دقيقة'
+  },
+  de: {
+    brand: 'iLife Watch · Personal-Dashboard', logout: 'Abmelden', loginTitle: 'Anmelden',
+    email: 'E-Mail', password: 'Passwort', loginBtn: 'Anmelden', reauth: 'Bitte erneut anmelden',
+    tabAlerts: 'Warnungen', tabPatients: 'Uhrenträger', tabEcg: 'EKG-Warteschlange',
+    tabAgg: 'Organisationsübersicht', tabAdd: '+ Nutzer anlegen',
+    unackedAlerts: 'Offene Warnmeldungen', empty: 'Keine Einträge',
+    colTime: 'Zeit', colPatient: 'Nutzer', colDetail: 'Details', ackBtn: 'Bestätigen',
+    ackPrompt: 'Nachverfolgungsnotiz (z. B. telefonisch kontaktiert)',
+    colName: 'Name', colLatestBp: 'Letzter Blutdruck', colLastSync: 'Letzter Sync', colAlerts: 'Warnungen',
+    male: 'Männlich', female: 'Weiblich', born: 'Geb.', back: '← Zurück',
+    emergencyContact: 'Notfallkontakt',
+    statLatestBp: 'Letzter Blutdruck', statBp7d: '7-Tage-Ø Blutdruck', statHr: 'Letzter Puls',
+    statSpo2: 'Letztes SpO2', statTemp: 'Körpertemperatur', statStepsSleep: 'Schritte / Schlaf',
+    cuff: 'Luftmanschette', ppg: 'Optisch (PPG)', times: 'Messungen', stepsUnit: 'Schritte', sleepHrs: 'Std. Schlaf',
+    chartBp30d: 'Blutdruckverlauf (30 Tage)', chartEcg: 'EKG-Aufzeichnungen',
+    chartHr7d: 'Herzfrequenz (7 Tage)', chartSpo27d: 'Blutsauerstoff SpO2 (7 Tage)',
+    chartTemp7d: 'Körpertemperatur °C (7 Tage)', chartSteps14d: 'Schritte (14 Tage)',
+    chartSleep14d: 'Schlafphasen Tief / Leicht (14 Tage)',
+    noData: 'Noch keine Daten', bpmUnit: 'S/min', reviewed: 'Geprüft', pendingReview: 'Ausstehend',
+    hrLabel: 'Puls', secUnit: 'Sek.', adcNote: 'Rohsignal vom ADC',
+    reviewPlaceholder: 'Ärztliche Befundnotiz', saveReview: 'Befund speichern', saved: 'Gespeichert',
+    ecgQueueTitle: 'Ausstehende EKG-Prüfungen',
+    aggNote: 'Anonymisierte Gesamtübersicht. Gruppen unter 5 Personen werden ausgeblendet.',
+    participants: 'Teilnehmer', active7d: 'Aktiv (7 Tage)', avgSteps7d: 'Ø Schritte/Tag (7T)',
+    bpDist30d: 'Blutdruckkategorien (30 Tage)', bpNorm: 'Normal (<120/80)', bpElev: 'Erhöht',
+    bpHigh: 'Hoch (≥140/90)', bpNoData: 'Keine Daten',
+    addTitle: 'Neuen Uhrenträger anlegen', displayName: 'Anzeigename', birthYear: 'Geburtsjahr (JJJJ)',
+    heightCm: 'Größe (cm)', weightKg: 'Gewicht (kg)', emergPlaceholder: 'Notfallkontakt (Name / Telefon)',
+    createBtn: 'Erstellen', enrollCode: 'Registrierungscode', pinOnce: 'PIN wird nur einmal angezeigt (für den App-Login).',
+    sysLegend: 'Systolisch', diaLegend: 'Diastolisch', refLegend: 'Gestrichelt = Grenzwert',
+    deepSleep: 'Tiefschlaf', lightSleep: 'Leichtschlaf', wakeCount: 'Wachphasen', minUnit: 'Min.'
+  }
+};
+
+let curLang = localStorage.getItem('wc_lang') || 'th';
+if (!DICT[curLang]) curLang = 'th';
+
+function t(k) { return (DICT[curLang] && DICT[curLang][k]) || DICT.th[k] || k; }
+function fmt(iso) { return iso ? new Date(iso).toLocaleString(LOCALES[curLang], { dateStyle: 'short', timeStyle: 'short' }) : '-'; }
+function fmtDate(ms) { return new Date(ms).toLocaleDateString(LOCALES[curLang]); }
+
+function applyLangUI() {
+  document.documentElement.lang = curLang;
+  document.documentElement.dir = curLang === 'ar' ? 'rtl' : 'ltr';
+  const sel = document.getElementById('langSelect');
+  if (sel && sel.value !== curLang) sel.value = curLang;
+  document.getElementById('brandTitle').textContent = t('brand');
+  document.getElementById('logout').textContent = t('logout');
+  document.getElementById('loginHeading').textContent = t('loginTitle');
+  document.getElementById('email').placeholder = t('email');
+  document.getElementById('pw').placeholder = t('password');
+  document.getElementById('go').textContent = t('loginBtn');
+}

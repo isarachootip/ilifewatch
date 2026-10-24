@@ -188,18 +188,11 @@ def ecg_queue(s: StaffUser = Depends(current_staff), db: Session = Depends(get_d
 
 def _ecg_json(e: EcgRecord, waveform: bool) -> dict:
     d = {
-        "id": e.id,
-        "patient_id": e.patient_id,
-        "measured_at": iso(e.measured_at),
-        "duration_sec": e.duration_sec,
-        "sample_rate_hz": e.sample_rate_hz,
-        "avg_heart_rate": e.avg_heart_rate,
-        "avg_hrv": e.avg_hrv,
-        "avg_qt": e.avg_qt,
-        "avg_resp_rate": e.avg_resp_rate,
-        "source": e.source,
-        "review_status": e.review_status,
-        "review_note": e.review_note,
+        "id": e.id, "patient_id": e.patient_id, "measured_at": iso(e.measured_at),
+        "duration_sec": e.duration_sec, "sample_rate_hz": e.sample_rate_hz,
+        "avg_heart_rate": e.avg_heart_rate, "avg_hrv": e.avg_hrv, "avg_qt": e.avg_qt,
+        "avg_resp_rate": e.avg_resp_rate, "source": e.source,
+        "review_status": e.review_status, "review_note": e.review_note,
     }
     if waveform:
         d["waveform"] = e.waveform or []

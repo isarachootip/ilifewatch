@@ -8,7 +8,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from .db import get_db
-from .models import AuditLog, BpReading, Patient, StaffUser, VitalSample
+from .models import AuditLog, BpReading, Patient, SleepSession, StaffUser, VitalSample
 from .security import read_token
 
 CONSENT_VERSION = "1.0"
@@ -101,6 +101,9 @@ def build_patient_summary(db: Session, p: Patient) -> dict:
         ).scalar()
         return {"value": v.value, "at": iso(v.at)} if v else None
 
+    sl = db.execute(
+        select(SleepSession).where(SleepSession.patient_id == p.id).order_by(SleepSession.start.desc()).limit(1)
+    ).scalar()
     avg7 = [b for b in bps if utc(b.measured_at) >= datetime.now(timezone.utc) - timedelta(days=7)]
     return {
         "latest_bp": bp_json(bps[0]) if bps else None,
@@ -115,4 +118,18 @@ def build_patient_summary(db: Session, p: Patient) -> dict:
         ),
         "latest_heart_rate": latest("heart_rate"),
         "latest_spo2": latest("spo2"),
+        "latest_temperature": latest("temperature"),
+        "latest_steps": latest("steps"),
+        "latest_sleep": (
+            {
+                "start": iso(sl.start),
+                "end": iso(sl.end),
+                "deep_minutes": sl.deep_minutes,
+                "light_minutes": sl.light_minutes,
+                "wake_count": sl.wake_count,
+                "quality": sl.quality,
+            }
+            if sl
+            else None
+        ),
     }
