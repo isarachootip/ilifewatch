@@ -169,4 +169,13 @@ const Map<String, String> stringsEn = {
   'pdpa_consent': 'I consent to the collection and transmission of health metrics from the watch (BP, pulse, ECG, SpO2, sleep) to my care provider in accordance with the privacy policy.',
   'login_btn': 'Sign In',
   'login_fail': 'Sign in failed',
+  'spo2_screen_title': 'Measure SpO2 · Temp · Pulse',
+  'spo2_tab_label': 'Oxygen (SpO2)',
+  'temp_tab_label': 'Temp (°C)',
+  'hr_tab_label': 'Live Pulse (bpm)',
+  'spo2_guide_text': 'Wear the F520Pro watch snugly and rest your arm still on a table while measuring.',
+  'start_watch_sport': 'Start Workout Mode on Watch',
+  'stop_watch_sport': 'Stop Workout Mode on Watch',
+  'sport_started_msg': 'Started workout mode on F520Pro watch',
+  'sport_stopped_msg': 'Stopped workout mode on watch',
 };

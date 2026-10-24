@@ -2,6 +2,7 @@ import 'dart:async';
 
 import '../app_state.dart';
 import '../data/upload_queue.dart';
+import '../watch/watch_live_extension.dart';
 import '../watch/watch_models.dart';
 import '../watch/watch_service.dart';
 
@@ -27,6 +28,9 @@ class SyncService {
     if (p != null) await _watch.syncProfile(p);
     try {
       _state.setBattery(await _watch.readBattery());
+      final sp = await _watch.readCurrentSportStep();
+      final steps = (sp['steps'] as num?)?.toInt();
+      if (steps != null && steps > 0) _state.setTodaySteps(steps);
     } catch (_) {}
     await syncAll();
   }

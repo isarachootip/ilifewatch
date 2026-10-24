@@ -158,8 +158,11 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
-  void resetStepsForSync() {
-    todaySteps = 0;
+  void resetStepsForSync() => todaySteps = 0;
+
+  void setTodaySteps(int steps) {
+    todaySteps = steps;
+    notifyListeners();
   }
 
   void setSleep({required int deep, required int light}) {

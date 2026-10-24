@@ -13,11 +13,12 @@ class HealthBentoGrid extends StatelessWidget {
     required this.state,
     required this.onMeasureBp,
     required this.onMeasureEcg,
+    required this.onMeasureSpo2,
     required this.onOpenExercise,
   });
 
   final AppState state;
-  final VoidCallback onMeasureBp, onMeasureEcg, onOpenExercise;
+  final VoidCallback onMeasureBp, onMeasureEcg, onMeasureSpo2, onOpenExercise;
 
   @override
   Widget build(BuildContext context) {
@@ -103,7 +104,7 @@ class HealthBentoGrid extends StatelessWidget {
         Expanded(
           child: _BentoCard(
             title: tr('bento_spo2_title'),
-            onTap: onMeasureBp,
+            onTap: onMeasureSpo2,
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Text(
                 state.latestSpo2 != null ? '${state.latestSpo2}%' : '--%',

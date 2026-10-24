@@ -30,7 +30,7 @@ class VeepooBridge(context: Context, messenger: BinaryMessenger) :
     }
 
     internal val vp: VPOperateManager = VPOperateManager.getInstance().also {
-        it.init(context.applicationContext) // ต้องเรียก init ก่อนใช้งาน
+        it.init(context.applicationContext)
     }
     internal val main = Handler(Looper.getMainLooper())
     private var sink: EventChannel.EventSink? = null
@@ -41,6 +41,7 @@ class VeepooBridge(context: Context, messenger: BinaryMessenger) :
 
     private val connectionHandler = VeepooConnectionHandler(this)
     private val measureHandler = VeepooMeasureHandler(this)
+    private val liveVitalHandler = VeepooLiveVitalHandler(this)
     private val syncHandler = VeepooSyncHandler(this)
 
     init {
@@ -107,6 +108,42 @@ class VeepooBridge(context: Context, messenger: BinaryMessenger) :
                 }
                 "stopEcg" -> {
                     measureHandler.stopEcg()
+                    result.success(null)
+                }
+                "startSpo2" -> {
+                    liveVitalHandler.startSpo2()
+                    result.success(null)
+                }
+                "stopSpo2" -> {
+                    liveVitalHandler.stopSpo2()
+                    result.success(null)
+                }
+                "startTemp" -> {
+                    liveVitalHandler.startTemp()
+                    result.success(null)
+                }
+                "stopTemp" -> {
+                    liveVitalHandler.stopTemp()
+                    result.success(null)
+                }
+                "startHeart" -> {
+                    liveVitalHandler.startHeart()
+                    result.success(null)
+                }
+                "stopHeart" -> {
+                    liveVitalHandler.stopHeart()
+                    result.success(null)
+                }
+                "readSportStep" -> {
+                    liveVitalHandler.readSportStep()
+                    result.success(null)
+                }
+                "startSportMode" -> {
+                    liveVitalHandler.startSportMode(call.argument<String>("mode") ?: "walk")
+                    result.success(null)
+                }
+                "stopSportMode" -> {
+                    liveVitalHandler.stopSportMode()
                     result.success(null)
                 }
                 "syncHistory" -> {

@@ -4,6 +4,7 @@ import 'package:ite_watch_care/app_state.dart';
 import 'package:ite_watch_care/l10n/app_language.dart';
 import 'package:ite_watch_care/main.dart';
 import 'package:ite_watch_care/screens/bp_category.dart';
+import 'package:ite_watch_care/screens/spo2_temp_screen.dart';
 import 'package:ite_watch_care/watch/watch_models.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -99,5 +100,22 @@ void main() {
     expect(json['diastolic'], 82);
     expect(json['method'], 'cuff');
     expect(json['source'], 'live');
+  });
+
+  testWidgets('Spo2TempScreen switches between SpO2, Temperature, and Live Pulse modes', (tester) async {
+    AppState.instance.setVital('spo2', 98);
+    AppState.instance.setVital('temperature', 36.6);
+    AppState.instance.setVital('heart_rate', 72);
+
+    await tester.pumpWidget(const MaterialApp(home: Spo2TempScreen()));
+    expect(find.text('98%'), findsOneWidget);
+
+    await tester.tap(find.text('อุณหภูมิ (°C)'));
+    await tester.pumpAndSettle();
+    expect(find.text('36.6 °C'), findsOneWidget);
+
+    await tester.tap(find.text('ชีพจรสด (bpm)'));
+    await tester.pumpAndSettle();
+    expect(find.text('72 bpm'), findsOneWidget);
   });
 }

@@ -50,7 +50,7 @@ class WatchService {
 
   // ---------- คิวคำสั่ง ----------
   Future<void> _queue = Future.value();
-  Future<T> _run<T>(Future<T> Function() task) {
+  Future<T> runQueued<T>(Future<T> Function() task) {
     final c = Completer<T>();
     _queue = _queue.then((_) async {
       try {
@@ -61,6 +61,9 @@ class WatchService {
     });
     return c.future;
   }
+
+  Future<T?> invokeNative<T>(String method, [dynamic arguments]) =>
+      _method.invokeMethod<T>(method, arguments);
 
   // ---------- เชื่อมต่อ ----------
   Future<void> startScan() {
@@ -87,18 +90,16 @@ class WatchService {
 
   /// ต้องเรียกหลังเชื่อมต่อทุกครั้ง: ความดัน/แคลอรี่คำนวณจากข้อมูลนี้
   Future<void> syncProfile(UserProfile p) =>
-      _run(() => _method.invokeMethod('syncProfile', p.toMap()));
+      runQueued(() => _method.invokeMethod('syncProfile', p.toMap()));
 
-  Future<Map<String, dynamic>> readBattery() => _run(() async {
+  Future<Map<String, dynamic>> readBattery() => runQueued(() async {
         final f = eventsOf('battery').first.timeout(const Duration(seconds: 10));
         await _method.invokeMethod('readBattery');
         return f;
       });
 
   // ---------- วัดความดัน ----------
-  /// [cuff] = true ใช้ปั๊มลมในสาย (ค่าแม่นกว่า, ใช้เวลา ~40-60 วินาที)
-  /// ระหว่างวัดจะมี event 'bpProgress' และจบด้วย 'bpResult' หรือ 'bpError'
-  Future<BpReading> measureBloodPressure({bool cuff = true}) => _run(() async {
+  Future<BpReading> measureBloodPressure({bool cuff = true}) => runQueued(() async {
         final done = events
             .firstWhere((e) => e['type'] == 'bpResult' || e['type'] == 'bpError')
             .timeout(const Duration(seconds: 120));
@@ -130,9 +131,7 @@ class WatchService {
       );
 
   // ---------- ECG ----------
-  /// เริ่มวัด ECG: ผู้ใช้ต้องแตะนิ้วที่ขั้วนาฬิกา ~30-60 วินาที
-  /// waveform สดมาทาง event 'ecgWave', ผลสรุปมาทาง 'ecgResult'
-  Future<EcgRecord> measureEcg() => _run(() async {
+  Future<EcgRecord> measureEcg() => runQueued(() async {
         final done = events
             .firstWhere((e) => e['type'] == 'ecgResult' || e['type'] == 'ecgError')
             .timeout(const Duration(seconds: 150));
@@ -161,16 +160,13 @@ class WatchService {
   Future<void> cancelEcg() => _method.invokeMethod('stopEcg');
 
   // ---------- ดึงข้อมูลย้อนหลัง ----------
-  /// อ่านข้อมูลทั้งหมดที่นาฬิกาเก็บไว้ (ปกติ 3 วันย้อนหลัง)
-  /// ระหว่างอ่านมี event: syncProgress, vitals, sleep, bpResult(source=auto/watch)
-  Future<void> syncHistory() => _run(() async {
+  Future<void> syncHistory() => runQueued(() async {
         final done = eventsOf('syncDone').first.timeout(const Duration(minutes: 5));
         await _method.invokeMethod('syncHistory');
         await done;
       });
 
-  /// อ่านผลที่ผู้ใช้กดวัดบนนาฬิกาเอง (รวมความดันปั๊มลม) หลังเวลาที่กำหนด
-  Future<void> readWatchMeasurements(DateTime since) => _run(() async {
+  Future<void> readWatchMeasurements(DateTime since) => runQueued(() async {
         final done = eventsOf('manualDone').first.timeout(const Duration(minutes: 2));
         await _method.invokeMethod(
             'readWatchMeasurements', {'since': since.millisecondsSinceEpoch ~/ 1000});

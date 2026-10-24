@@ -169,4 +169,13 @@ const Map<String, String> stringsZh = {
   'pdpa_consent': '我同意收集并传输手表的健康数据（血压、心率、心电图、血氧、睡眠）至照护机构以进行健康监测。',
   'login_btn': '登录绑定',
   'login_fail': '登录失败',
+  'spo2_screen_title': '测量血氧 · 体温 · 心率',
+  'spo2_tab_label': '血氧 (SpO2)',
+  'temp_tab_label': '体温 (°C)',
+  'hr_tab_label': '实时心率 (bpm)',
+  'spo2_guide_text': '请系紧 F520Pro 手表，测量期间将手臂平放桌面并保持静止。',
+  'start_watch_sport': '在手表上启动运动模式',
+  'stop_watch_sport': '停止手表运动模式',
+  'sport_started_msg': '已在 F520Pro 手表上启动运动模式',
+  'sport_stopped_msg': '已停止手表运动模式',
 };

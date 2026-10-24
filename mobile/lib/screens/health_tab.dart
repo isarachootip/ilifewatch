@@ -9,6 +9,7 @@ import 'bp_screen.dart';
 import 'ecg_screen.dart';
 import 'home_widgets.dart';
 import 'pair_screen.dart';
+import 'spo2_temp_screen.dart';
 import 'widgets/health_bento_grid.dart';
 import 'widgets/health_clover_card.dart';
 
@@ -43,6 +44,14 @@ class HealthTab extends StatelessWidget {
       return;
     }
     Navigator.push(context, MaterialPageRoute(builder: (_) => const EcgScreen()));
+  }
+
+  void _openSpo2(BuildContext context) {
+    if (conn != WatchConnection.ready) {
+      Navigator.push(context, MaterialPageRoute(builder: (_) => const PairScreen()));
+      return;
+    }
+    Navigator.push(context, MaterialPageRoute(builder: (_) => const Spo2TempScreen()));
   }
 
   @override
@@ -116,6 +125,7 @@ class HealthTab extends StatelessWidget {
               state: s,
               onMeasureBp: () => _openBp(context),
               onMeasureEcg: () => _openEcg(context),
+              onMeasureSpo2: () => _openSpo2(context),
               onOpenExercise: () => onSwitchTab(1),
             ),
             if (s.alerts.isNotEmpty) ...[

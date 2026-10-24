@@ -169,4 +169,13 @@ const Map<String, String> stringsDe = {
   'pdpa_consent': 'Ich stimme der Erhebung und Übermittlung meiner Gesundheitsdaten (Blutdruck, Puls, EKG, SpO2, Schlaf) an mein Pflegezentrum gemäß Datenschutzrichtlinie zu.',
   'login_btn': 'Anmelden',
   'login_fail': 'Anmeldung fehlgeschlagen',
+  'spo2_screen_title': 'SpO2 · Temperatur · Puls messen',
+  'spo2_tab_label': 'Sauerstoff (SpO2)',
+  'temp_tab_label': 'Temperatur (°C)',
+  'hr_tab_label': 'Live-Puls (bpm)',
+  'spo2_guide_text': 'Tragen Sie die F520Pro eng am Handgelenk und halten Sie den Arm während der Messung ruhig.',
+  'start_watch_sport': 'Trainingsmodus auf Uhr starten',
+  'stop_watch_sport': 'Trainingsmodus auf Uhr stoppen',
+  'sport_started_msg': 'Trainingsmodus auf F520Pro-Uhr gestartet',
+  'sport_stopped_msg': 'Trainingsmodus auf Uhr gestoppt',
 };
