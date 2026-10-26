@@ -14,23 +14,15 @@ class AppState extends ChangeNotifier {
 
   String server = defaultServer;
   AppLanguage language = AppLanguage.th;
-  String? token;
-  String? patientName;
-  String? orgName;
-  String? orgType; // elder_care | clinic | corporate
+  String? token, enrollmentCode, patientName, orgName, orgType, pairedMac, pairedName;
+  bool sessionExpired = false;
   UserProfile? profile;
-  String? pairedMac;
-  String? pairedName;
   DateTime? lastSync;
 
   BpReading? latestBp;
-  int? latestHeartRate;
-  int? latestSpo2;
+  int? latestHeartRate, latestSpo2;
   double? latestTemperature;
-  int todaySteps = 0;
-  int latestSleepMinutes = 0;
-  int latestDeepMinutes = 0;
-  int latestLightMinutes = 0;
+  int todaySteps = 0, latestSleepMinutes = 0, latestDeepMinutes = 0, latestLightMinutes = 0;
   Map<String, dynamic>? battery;
   final List<BpReading> recentBp = [];
   final List<Map<String, dynamic>> alerts = [];
@@ -39,9 +31,7 @@ class AppState extends ChangeNotifier {
   int get caloriesKcal => (todaySteps * 0.04).round();
   String get sleepFormatted {
     if (latestSleepMinutes <= 0) return '00:00';
-    final h = (latestSleepMinutes ~/ 60).toString().padLeft(2, '0');
-    final m = (latestSleepMinutes % 60).toString().padLeft(2, '0');
-    return '$h:$m';
+    return '${(latestSleepMinutes ~/ 60).toString().padLeft(2, '0')}:${(latestSleepMinutes % 60).toString().padLeft(2, '0')}';
   }
 
   late ApiClient api = ApiClient(baseUrl: server);
@@ -53,6 +43,8 @@ class AppState extends ChangeNotifier {
     server = p.getString('server') ?? defaultServer;
     language = AppLanguage.fromCode(p.getString('language'));
     token = p.getString('token');
+    enrollmentCode = p.getString('enrollmentCode');
+    sessionExpired = p.getBool('sessionExpired') ?? false;
     patientName = p.getString('patientName');
     orgName = p.getString('orgName');
     orgType = p.getString('orgType');
@@ -74,11 +66,13 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> applyLogin(Map<String, dynamic> res) async {
+  Future<void> applyLogin(Map<String, dynamic> res, {String? code}) async {
     final p = await SharedPreferences.getInstance();
     token = res['token'] as String;
+    sessionExpired = false;
     final patient = Map<String, dynamic>.from(res['patient'] as Map);
     final org = Map<String, dynamic>.from(res['org'] as Map);
+    enrollmentCode = (patient['enrollment_code'] as String?) ?? code ?? enrollmentCode;
     patientName = patient['display_name'] as String?;
     orgName = org['name'] as String?;
     orgType = org['type'] as String?;
@@ -88,8 +82,11 @@ class AppState extends ChangeNotifier {
       weightKg: (patient['weight_kg'] ?? 60) as int,
       birthYear: (patient['birth_year'] ?? 1960) as int,
     );
+    api = ApiClient(baseUrl: server, token: token);
     await p.setString('server', server);
     await p.setString('token', token!);
+    await p.setBool('sessionExpired', false);
+    if (enrollmentCode != null) await p.setString('enrollmentCode', enrollmentCode!);
     await p.setString('patientName', patientName ?? '');
     await p.setString('orgName', orgName ?? '');
     await p.setString('orgType', orgType ?? '');
@@ -98,6 +95,17 @@ class AppState extends ChangeNotifier {
     await p.setInt('weightKg', profile!.weightKg);
     await p.setInt('birthYear', profile!.birthYear);
     notifyListeners();
+  }
+
+  Future<void> markSessionExpired() async {
+    if (token == null && sessionExpired) return;
+    token = null;
+    sessionExpired = true;
+    api = ApiClient(baseUrl: server);
+    notifyListeners();
+    final p = await SharedPreferences.getInstance();
+    await p.remove('token');
+    await p.setBool('sessionExpired', true);
   }
 
   Future<void> setLanguage(AppLanguage lang) async {
@@ -159,24 +167,14 @@ class AppState extends ChangeNotifier {
   }
 
   void resetStepsForSync() => todaySteps = 0;
-
-  void setTodaySteps(int steps) {
-    todaySteps = steps;
-    notifyListeners();
-  }
-
+  void setTodaySteps(int steps) { todaySteps = steps; notifyListeners(); }
   void setSleep({required int deep, required int light}) {
     latestDeepMinutes = deep;
     latestLightMinutes = light;
     latestSleepMinutes = deep + light;
     notifyListeners();
   }
-
-  void setBattery(Map<String, dynamic> b) {
-    battery = b;
-    notifyListeners();
-  }
-
+  void setBattery(Map<String, dynamic> b) { battery = b; notifyListeners(); }
   void addAlerts(List<Map<String, dynamic>> a) {
     if (a.isEmpty) return;
     alerts.insertAll(0, a);
@@ -186,9 +184,9 @@ class AppState extends ChangeNotifier {
   Future<void> logout() async {
     final p = await SharedPreferences.getInstance();
     await p.clear();
-    token = null;
+    token = enrollmentCode = pairedMac = null;
+    sessionExpired = false;
     profile = null;
-    pairedMac = null;
     recentBp.clear();
     alerts.clear();
     notifyListeners();

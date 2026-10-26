@@ -12,6 +12,7 @@ import 'devices_tab.dart';
 import 'exercise_tab.dart';
 import 'health_tab.dart';
 import 'ilife_care_tab.dart';
+import 'pair_screen.dart';
 import 'profile_tab.dart';
 
 /// โครงสร้างหลัก 5 แท็บสไตล์ Huawei Health + ธีมสี iLife Care (รองรับ 5 ภาษา)
@@ -44,10 +45,12 @@ class _MainShellState extends State<MainShell> {
     if (_conn != WatchConnection.ready && AppState.instance.pairedMac != null) {
       _reconnect();
     }
+    SyncService.instance.startPeriodicSync();
   }
 
   @override
   void dispose() {
+    SyncService.instance.stopPeriodicSync();
     _connSub?.cancel();
     _progSub?.cancel();
     super.dispose();
@@ -77,6 +80,19 @@ class _MainShellState extends State<MainShell> {
   }
 
   Future<void> _sync() async {
+    if (_conn != WatchConnection.ready) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(tr('conn_disconnected')),
+          action: SnackBarAction(
+            label: tr('tap_to_connect'),
+            onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PairScreen())),
+          ),
+        ),
+      );
+      return;
+    }
     try {
       await SyncService.instance.syncAll();
       if (mounted) {

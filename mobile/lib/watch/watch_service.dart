@@ -89,8 +89,9 @@ class WatchService {
   Future<void> disconnect() => _method.invokeMethod('disconnect');
 
   /// ต้องเรียกหลังเชื่อมต่อทุกครั้ง: ความดัน/แคลอรี่คำนวณจากข้อมูลนี้
-  Future<void> syncProfile(UserProfile p) =>
-      runQueued(() => _method.invokeMethod('syncProfile', p.toMap()));
+  Future<void> syncProfile(UserProfile p) => runQueued(
+        () => _method.invokeMethod('syncProfile', p.toMap()).timeout(const Duration(seconds: 10)),
+      );
 
   Future<Map<String, dynamic>> readBattery() => runQueued(() async {
         final f = eventsOf('battery').first.timeout(const Duration(seconds: 10));

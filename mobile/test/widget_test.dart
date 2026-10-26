@@ -4,6 +4,7 @@ import 'package:ite_watch_care/app_state.dart';
 import 'package:ite_watch_care/l10n/app_language.dart';
 import 'package:ite_watch_care/main.dart';
 import 'package:ite_watch_care/screens/bp_category.dart';
+import 'package:ite_watch_care/screens/mini_checkup_screen.dart';
 import 'package:ite_watch_care/screens/spo2_temp_screen.dart';
 import 'package:ite_watch_care/watch/watch_models.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -117,5 +118,62 @@ void main() {
     await tester.tap(find.text('ชีพจรสด (bpm)'));
     await tester.pumpAndSettle();
     expect(find.text('72 bpm'), findsOneWidget);
+  });
+
+  testWidgets('MiniCheckupScreen displays 6 health metrics and localizes across languages', (tester) async {
+    AppState.instance.setVital('heart_rate', 75);
+    AppState.instance.setVital('spo2', 99);
+    AppState.instance.setVital('temperature', 36.5);
+
+    await tester.pumpWidget(const MaterialApp(home: MiniCheckupScreen()));
+    expect(find.text('ตรวจสุขภาพด่วนในปุ่มเดียว (60 วินาที)'), findsWidgets);
+    expect(find.text('75 bpm'), findsOneWidget);
+    expect(find.text('99%'), findsOneWidget);
+    expect(find.text('36.5 °C'), findsOneWidget);
+
+    await AppState.instance.setLanguage(AppLanguage.en);
+    await tester.pumpWidget(const MaterialApp(home: MiniCheckupScreen()));
+    expect(find.text('One-Tap 60s Health Checkup'), findsWidgets);
+  });
+
+  test('VitalSample.isValid enforces medical ranges matching server schema', () {
+    final now = DateTime.now();
+    expect(VitalSample(now, 'spo2', 98).isValid, isTrue);
+    expect(VitalSample(now, 'spo2', -5).isValid, isFalse);
+    expect(VitalSample(now, 'spo2', 0).isValid, isFalse);
+    expect(VitalSample(now, 'heart_rate', 72).isValid, isTrue);
+    expect(VitalSample(now, 'heart_rate', 300).isValid, isFalse);
+    expect(VitalSample(now, 'temperature', 36.6).isValid, isTrue);
+    expect(VitalSample(now, 'temperature', 25.0).isValid, isFalse);
+    expect(VitalSample(now, 'stress', 45).isValid, isTrue);
+    expect(VitalSample(now, 'stress', 120).isValid, isFalse);
+    expect(VitalSample(now, 'hrv', 55).isValid, isTrue);
+    expect(VitalSample(now, 'hrv', -1).isValid, isFalse);
+  });
+
+  testWidgets('ProfileTab shows dynamic enrollment code and disconnected sync shows snackbar', (tester) async {
+    await AppState.instance.applyLogin({
+      'token': 'test-token',
+      'patient': {
+        'enrollment_code': 'CLIN9999',
+        'display_name': 'คุณสมศรี',
+        'sex': 'F',
+        'height_cm': 158,
+        'weight_kg': 54,
+        'birth_year': 1955,
+      },
+      'org': {'name': 'คลินิกทดสอบ', 'type': 'clinic'},
+    });
+
+    await tester.pumpWidget(const WatchCareApp());
+    await tester.tap(find.text('ฉัน'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('CLIN9999'), findsOneWidget);
+    expect(find.text('ผูกบัญชี / เปลี่ยนรหัสลงทะเบียน (CARE0001)'), findsNothing);
+
+    await tester.tap(find.text('ซิงค์ล่าสุด'));
+    await tester.pumpAndSettle();
+    expect(find.text('ไม่ได้เชื่อมต่อนาฬิกา'), findsWidgets);
   });
 }

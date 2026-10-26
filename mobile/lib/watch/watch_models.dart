@@ -116,6 +116,16 @@ class VitalSample {
   final double value;
   VitalSample(this.at, this.metric, this.value);
 
+  bool get isValid => switch (metric) {
+        'heart_rate' => value >= 20 && value <= 260,
+        'spo2' => value >= 50 && value <= 100,
+        'temperature' => value >= 30.0 && value <= 45.0,
+        'steps' => value >= 0 && value <= 200000,
+        'stress' => value >= 0 && value <= 100,
+        'hrv' => value >= 0 && value <= 300,
+        _ => false,
+      };
+
   Map<String, dynamic> toJson() =>
       {'at': at.toUtc().toIso8601String(), 'metric': metric, 'value': value};
 }

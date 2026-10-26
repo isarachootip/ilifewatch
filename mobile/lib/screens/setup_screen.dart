@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../app_state.dart';
 import '../data/api_client.dart';
+import '../data/upload_queue.dart';
 import '../l10n/app_strings.dart';
 
 /// เข้าสู่ระบบด้วยรหัสลงทะเบียนที่เจ้าหน้าที่ออกให้
@@ -30,8 +31,10 @@ class _SetupScreenState extends State<SetupScreen> {
     s.server = _server.text.trim();
     s.api = ApiClient(baseUrl: s.server);
     try {
-      final res = await s.api.login(_code.text.trim(), _pin.text.trim());
-      await s.applyLogin(res);
+      final code = _code.text.trim().toUpperCase();
+      final res = await s.api.login(code, _pin.text.trim());
+      await s.applyLogin(res, code: code);
+      s.addAlerts(await UploadQueue().flush(s.api, onUnauthorized: s.markSessionExpired));
       if (mounted && Navigator.canPop(context)) Navigator.pop(context);
     } catch (e) {
       setState(() => _error = '${tr('login_fail')}: $e');

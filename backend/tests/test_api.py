@@ -78,6 +78,18 @@ def test_rejects_invalid_values(client):
     h = patient_token(client)
     r = client.post("/v1/ingest", json={"bp": [{"measured_at": now(), "systolic": 999, "diastolic": 80}]}, headers=h)
     assert r.status_code == 422
+    for bad_vital in (
+        {"at": now(), "metric": "spo2", "value": -5},
+        {"at": now(), "metric": "spo2", "value": 105},
+        {"at": now(), "metric": "heart_rate", "value": 10},
+        {"at": now(), "metric": "heart_rate", "value": 300},
+        {"at": now(), "metric": "temperature", "value": 25.0},
+        {"at": now(), "metric": "steps", "value": -1},
+        {"at": now(), "metric": "stress", "value": 120},
+        {"at": now(), "metric": "hrv", "value": 400},
+    ):
+        rv = client.post("/v1/ingest", json={"vitals": [bad_vital]}, headers=h)
+        assert rv.status_code == 422, f"Expected 422 for {bad_vital}, got {rv.status_code}"
 
 
 def test_caregiver_sees_patient_and_acks_alert(client):

@@ -31,15 +31,11 @@ class _PairScreenState extends State<PairScreen> {
   }
 
   Future<bool> _askPermissions() async {
-    if (Platform.isAndroid) {
-      final r = await [
-        Permission.bluetoothScan,
-        Permission.bluetoothConnect,
-        Permission.locationWhenInUse,
-      ].request();
-      return r.values.every((s) => s.isGranted || s.isLimited);
-    }
-    return true;
+    if (!Platform.isAndroid) return true;
+    final bt = await [Permission.bluetoothScan, Permission.bluetoothConnect].request();
+    if (bt.values.every((s) => s.isGranted || s.isLimited)) return true;
+    final loc = await Permission.locationWhenInUse.request();
+    return loc.isGranted || loc.isLimited;
   }
 
   Future<void> _start() async {

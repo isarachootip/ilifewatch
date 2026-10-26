@@ -8,7 +8,9 @@ import '../watch/watch_models.dart';
 import 'bp_screen.dart';
 import 'ecg_screen.dart';
 import 'home_widgets.dart';
+import 'mini_checkup_screen.dart';
 import 'pair_screen.dart';
+import 'setup_screen.dart';
 import 'spo2_temp_screen.dart';
 import 'widgets/health_bento_grid.dart';
 import 'widgets/health_clover_card.dart';
@@ -54,6 +56,14 @@ class HealthTab extends StatelessWidget {
     Navigator.push(context, MaterialPageRoute(builder: (_) => const Spo2TempScreen()));
   }
 
+  void _openMiniCheckup(BuildContext context) {
+    if (conn != WatchConnection.ready) {
+      Navigator.push(context, MaterialPageRoute(builder: (_) => const PairScreen()));
+      return;
+    }
+    Navigator.push(context, MaterialPageRoute(builder: (_) => const MiniCheckupScreen()));
+  }
+
   @override
   Widget build(BuildContext context) {
     final s = AppState.instance;
@@ -82,6 +92,16 @@ class HealthTab extends StatelessWidget {
         child: ListView(
           padding: const EdgeInsets.fromLTRB(16, 4, 16, 28),
           children: [
+            if (s.sessionExpired)
+              Card(
+                color: const Color(0xFFFFF4E5),
+                child: ListTile(
+                  leading: const Icon(Icons.lock_clock, color: ILifeTheme.magenta),
+                  title: Text(tr('session_expired_banner'), style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700)),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SetupScreen())),
+                ),
+              ),
             Card(
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
@@ -119,6 +139,23 @@ class HealthTab extends StatelessWidget {
               onSync: ready ? onSync : () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PairScreen())),
               onOpenCare: () => onSwitchTab(2),
               onOpenDevices: () => onSwitchTab(3),
+            ),
+            const SizedBox(height: 12),
+            Card(
+              color: ILifeTheme.tealLight,
+              child: ListTile(
+                onTap: () => _openMiniCheckup(context),
+                leading: const CircleAvatar(
+                  backgroundColor: ILifeTheme.teal,
+                  child: Icon(Icons.health_and_safety, color: Colors.white),
+                ),
+                title: Text(
+                  MiniCheckupScreen.titleFor(s.language),
+                  style: const TextStyle(fontWeight: FontWeight.w800, color: ILifeTheme.navy),
+                ),
+                subtitle: Text(MiniCheckupScreen.subtitleFor(s.language)),
+                trailing: const Icon(Icons.chevron_right, color: ILifeTheme.teal),
+              ),
             ),
             const SizedBox(height: 12),
             HealthBentoGrid(

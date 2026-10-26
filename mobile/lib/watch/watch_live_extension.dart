@@ -75,4 +75,28 @@ extension WatchLiveExtension on WatchService {
   /// สั่งหยุดโหมดออกกำลังกายบนหน้าปัดนาฬิกา
   Future<void> stopWatchSportMode() =>
       runQueued(() => invokeNative('stopSportMode'));
+
+  /// สั่งตรวจสุขภาพด่วนในปุ่มเดียว 60 วินาที (One-Tap Mini Checkup: ชีพจร + ความดัน + SpO2 + อุณหภูมิ + ความเครียด + HRV)
+  Future<Map<String, dynamic>> runMiniCheckup() => runQueued(() async {
+        final done = events
+            .firstWhere((e) => e['type'] == 'miniCheckupResult' || e['type'] == 'miniCheckupError')
+            .timeout(const Duration(seconds: 95));
+        await invokeNative('startMiniCheckup');
+        final Map<String, dynamic> e;
+        try {
+          e = await done;
+        } finally {
+          await invokeNative('stopMiniCheckup');
+        }
+        if (e['type'] == 'miniCheckupError') {
+          throw PlatformException(code: 'CHECKUP_${e['status']}', message: bpStatusThai('${e['status']}'));
+        }
+        return e;
+      });
+
+  Future<void> cancelMiniCheckup() => invokeNative('stopMiniCheckup');
+
+  /// สั่งเปิดโหมดวัดค่าอัตโนมัติ 24 ชม. บนนาฬิกา (Auto HR, Auto BP, Auto Temp, Auto HRV, Auto Stress)
+  Future<void> enableWatchAutoDetect() =>
+      runQueued(() => invokeNative('enableAutoDetect'));
 }

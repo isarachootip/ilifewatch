@@ -19,20 +19,45 @@ class SyncService {
   final _queue = UploadQueue();
   final _state = AppState.instance;
   bool _running = false;
+  Timer? _periodicTimer;
 
   /// ความคืบหน้า 0..1 สำหรับแสดงบนหน้าจอ
   final progress = StreamController<double>.broadcast();
 
+  /// เริ่มซิงค์อัตโนมัติทุก 15 นาทีขณะที่แอปทำงานอยู่ + ส่งคิวออฟไลน์เมื่อมีสัญญาณเน็ต
+  void startPeriodicSync() {
+    _periodicTimer?.cancel();
+    _periodicTimer = Timer.periodic(const Duration(minutes: 15), (_) async {
+      if (_watch.state == WatchConnection.ready) {
+        try {
+          await syncAll();
+        } catch (_) {}
+      } else if (_state.isLoggedIn) {
+        _state.addAlerts(await _queue.flush(_state.api, onUnauthorized: _state.markSessionExpired));
+      }
+    });
+  }
+
+  void stopPeriodicSync() {
+    _periodicTimer?.cancel();
+    _periodicTimer = null;
+  }
+
   Future<void> afterConnect() async {
     final p = _state.profile;
-    if (p != null) await _watch.syncProfile(p);
     try {
+      if (p != null) await _watch.syncProfile(p);
+    } catch (_) {}
+    try {
+      await _watch.enableWatchAutoDetect();
       _state.setBattery(await _watch.readBattery());
       final sp = await _watch.readCurrentSportStep();
       final steps = (sp['steps'] as num?)?.toInt();
       if (steps != null && steps > 0) _state.setTodaySteps(steps);
     } catch (_) {}
-    await syncAll();
+    try {
+      await syncAll();
+    } catch (_) {}
   }
 
   Future<void> syncAll() async {
@@ -71,6 +96,7 @@ class SyncService {
             final m = Map<String, dynamic>.from(s as Map);
             final at = parseWatchTime(m['at']);
             final v = VitalSample(at, m['metric'] as String, (m['value'] as num).toDouble());
+            if (!v.isValid) continue;
             vitals.add(v.toJson());
             _state.setVital(v.metric, v.value, at: at.toLocal());
           }
@@ -96,22 +122,37 @@ class SyncService {
     });
 
     final started = DateTime.now();
+    Object? syncError;
     try {
       final since = _state.lastSync?.subtract(const Duration(hours: 1)) ??
           DateTime.now().subtract(const Duration(days: 7));
-      await _watch.readWatchMeasurements(since);
-      await _watch.syncHistory();
+      try {
+        await _watch.readWatchMeasurements(since);
+      } catch (e) {
+        syncError = e;
+      }
+      try {
+        await _watch.syncHistory();
+      } catch (e) {
+        syncError ??= e;
+      }
       await Future<void>.delayed(const Duration(milliseconds: 300));
     } finally {
       await sub.cancel();
       _running = false;
     }
 
-    if (_state.isLoggedIn) {
+    final hasData = bp.isNotEmpty || ecg.isNotEmpty || vitals.isNotEmpty || sleep.isNotEmpty;
+    if (_state.isLoggedIn && (hasData || syncError == null)) {
       await uploadPayload(bp: bp, ecg: ecg, vitals: vitals, sleep: sleep);
     }
-    await _state.markSynced(started);
-    progress.add(1.0);
+    if (syncError == null || hasData) {
+      await _state.markSynced(started);
+      progress.add(1.0);
+    }
+    if (syncError != null && !hasData) {
+      Error.throwWithStackTrace(syncError, StackTrace.current);
+    }
   }
 
   /// ส่งผลวัดครั้งเดียว (เช่น หลังวัดความดันจากแอป)
@@ -123,7 +164,7 @@ class SyncService {
   }) async {
     if (!_state.isLoggedIn) return;
     if (bp.isEmpty && ecg.isEmpty && vitals.isEmpty && sleep.isEmpty) {
-      _state.addAlerts(await _queue.flush(_state.api));
+      _state.addAlerts(await _queue.flush(_state.api, onUnauthorized: _state.markSessionExpired));
       return;
     }
     final info = _watch.deviceInfo;
@@ -138,6 +179,6 @@ class SyncService {
       'vitals': vitals,
       'sleep': sleep,
     });
-    _state.addAlerts(await _queue.flush(_state.api));
+    _state.addAlerts(await _queue.flush(_state.api, onUnauthorized: _state.markSessionExpired));
   }
 }

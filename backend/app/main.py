@@ -7,6 +7,7 @@
 from __future__ import annotations
 
 from contextlib import asynccontextmanager
+import os
 from pathlib import Path
 
 from fastapi import FastAPI
@@ -24,9 +25,19 @@ async def lifespan(_app: FastAPI):
     yield
 
 
+_DEFAULT_ORIGINS = "https://ilifewatch.online,http://localhost:8000,http://127.0.0.1:8000"
+_CORS_ORIGINS = [
+    o.strip() for o in os.environ.get("CORS_ORIGINS", _DEFAULT_ORIGINS).split(",") if o.strip()
+]
+
 app = FastAPI(title="ITE Watch Care API", version="0.1.0", lifespan=lifespan)
-# ระบบจริง: จำกัด allow_origins ให้เหลือเฉพาะโดเมนแดชบอร์ดของหน่วยงาน
-app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=_CORS_ORIGINS,
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type"],
+)
 
 app.include_router(auth_ingest.router)
 app.include_router(staff_patients.router)

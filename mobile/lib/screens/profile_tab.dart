@@ -132,6 +132,7 @@ class ProfileTab extends StatelessWidget {
                 ListTile(
                   leading: const Icon(Icons.badge_outlined, color: ILifeTheme.teal),
                   title: Text(tr('enroll_menu_title')),
+                  subtitle: s.enrollmentCode?.isNotEmpty == true ? Text(s.enrollmentCode!) : null,
                   trailing: const Icon(Icons.chevron_right),
                   onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SetupScreen())),
                 ),

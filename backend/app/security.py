@@ -8,11 +8,20 @@ import base64
 import hashlib
 import hmac
 import json
+import logging
 import os
 import secrets
 import time
 
-SECRET_KEY = os.environ.get("SECRET_KEY", "dev-only-change-me")
+_DEFAULT_DEV_KEY = "dev-only-change-me"
+_APP_ENV = os.environ.get("APP_ENV", "development").strip().lower()
+SECRET_KEY = os.environ.get("SECRET_KEY", _DEFAULT_DEV_KEY)
+if _APP_ENV in ("prod", "production") and (not SECRET_KEY or SECRET_KEY == _DEFAULT_DEV_KEY):
+    raise RuntimeError("SECRET_KEY must be set to a strong secret in production (APP_ENV=production)")
+if SECRET_KEY == _DEFAULT_DEV_KEY:
+    logging.getLogger("watch_care.security").warning(
+        "Using default development SECRET_KEY. Set SECRET_KEY environment variable before production deployment."
+    )
 PATIENT_TOKEN_DAYS = 90
 STAFF_TOKEN_HOURS = 12
 

@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 
 class LoginIn(BaseModel):
@@ -45,10 +45,27 @@ class EcgIn(BaseModel):
     source: Literal["live", "watch"] = "live"
 
 
+_VITAL_RANGES: dict[str, tuple[float, float]] = {
+    "heart_rate": (20.0, 260.0),
+    "spo2": (50.0, 100.0),
+    "temperature": (30.0, 45.0),
+    "steps": (0.0, 200_000.0),
+    "stress": (0.0, 100.0),
+    "hrv": (0.0, 300.0),
+}
+
+
 class VitalIn(BaseModel):
     at: datetime
     metric: Literal["heart_rate", "spo2", "steps", "temperature", "stress", "hrv"]
     value: float
+
+    @model_validator(mode="after")
+    def _validate_vital_range(self) -> VitalIn:
+        lo, hi = _VITAL_RANGES[self.metric]
+        if not (lo <= self.value <= hi):
+            raise ValueError(f"{self.metric} value {self.value} out of valid range [{lo}, {hi}]")
+        return self
 
 
 class SleepIn(BaseModel):

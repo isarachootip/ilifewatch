@@ -48,6 +48,7 @@ class VeepooBridge(context: Context, messenger: BinaryMessenger) :
     private val liveVitalHandler = VeepooLiveVitalHandler(this)
     private val syncHandler = VeepooSyncHandler(this)
     private val manualReader = VeepooManualReader(this)
+    private val miniCheckupHandler = VeepooMiniCheckupHandler(this)
 
     init {
         MethodChannel(messenger, "ite.watch/method").setMethodCallHandler(this)
@@ -159,6 +160,18 @@ class VeepooBridge(context: Context, messenger: BinaryMessenger) :
                 "readWatchMeasurements" -> {
                     val since = (call.argument<Number>("since") ?: 0).toLong()
                     manualReader.readManual(since)
+                    result.success(null)
+                }
+                "startMiniCheckup" -> {
+                    miniCheckupHandler.startMiniCheckup()
+                    result.success(null)
+                }
+                "stopMiniCheckup" -> {
+                    miniCheckupHandler.stopMiniCheckup()
+                    result.success(null)
+                }
+                "enableAutoDetect" -> {
+                    miniCheckupHandler.enableAutoDetect()
                     result.success(null)
                 }
                 else -> result.notImplemented()

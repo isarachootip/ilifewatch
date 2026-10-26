@@ -31,6 +31,7 @@ def patient_login(body: LoginIn, db: Session = Depends(get_db)):
         "token": make_token("patient", p.id, p.org_id),
         "patient": {
             "id": p.id,
+            "enrollment_code": p.enrollment_code,
             "display_name": p.display_name,
             "sex": p.sex,
             "birth_year": p.birth_year,

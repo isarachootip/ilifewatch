@@ -30,6 +30,7 @@ import com.veepoo.protocol.model.enums.ESex
 import com.veepoo.protocol.model.settings.CustomSettingData
 import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
+import java.util.concurrent.atomic.AtomicBoolean
 
 internal class VeepooConnectionHandler(private val b: VeepooBridge) {
 
@@ -139,8 +140,10 @@ internal class VeepooConnectionHandler(private val b: VeepooBridge) {
             call.argument<Int>("age") ?: 60,
             call.argument<Int>("stepGoal") ?: 6000,
         )
+        val replied = AtomicBoolean(false)
         b.vp.syncPersonInfo(b.writeResp, object : IPersonInfoDataListener {
             override fun OnPersoninfoDataChange(status: EOprateStauts?) {
+                if (!replied.compareAndSet(false, true)) return
                 b.main.post {
                     if (status == EOprateStauts.OPRATE_SUCCESS) result.success(null)
                     else result.error("PROFILE_FAILED", "sync person info: $status", null)
