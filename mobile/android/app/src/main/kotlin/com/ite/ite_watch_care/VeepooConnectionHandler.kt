@@ -51,11 +51,19 @@ internal class VeepooConnectionHandler(private val b: VeepooBridge) {
         })
     }
 
-    fun connect(mac: String) {
+    fun connect(mac: String, deviceName: String = "F520Pro") {
         b.vp.stopScanDevice()
         b.currentMac = mac
+        b.currentDeviceName = deviceName
         b.emit("connection", mapOf("state" to "connecting"))
-        b.vp.connectDevice(mac, object : IConnectResponse {
+        b.vp.registerConnectStatusListener(mac, object : IABleConnectStatusListener() {
+            override fun onConnectStatusChanged(address: String?, status: Int) {
+                if (status == Constants.STATUS_DISCONNECTED) {
+                    b.emit("connection", mapOf("state" to "disconnected"))
+                }
+            }
+        })
+        b.vp.connectDevice(mac, deviceName, object : IConnectResponse {
             override fun connectState(code: Int, profile: BleGattProfile?, isOadModel: Boolean) {
                 if (code == Constants.REQUEST_SUCCESS) {
                     b.emit("connection", mapOf("state" to "connected"))
@@ -68,13 +76,6 @@ internal class VeepooConnectionHandler(private val b: VeepooBridge) {
                 // ต้องรอ notify สำเร็จก่อนจึงยืนยันรหัสผ่านได้
                 if (state == Constants.REQUEST_SUCCESS) confirmPassword()
                 else b.emit("connection", mapOf("state" to "failed", "detail" to "notify state=$state"))
-            }
-        })
-        b.vp.registerConnectStatusListener(mac, object : IABleConnectStatusListener() {
-            override fun onConnectStatusChanged(address: String?, status: Int) {
-                if (status == Constants.STATUS_DISCONNECTED) {
-                    b.emit("connection", mapOf("state" to "disconnected"))
-                }
             }
         })
     }
@@ -101,12 +102,16 @@ internal class VeepooConnectionHandler(private val b: VeepooBridge) {
             override fun onFunctionSupportDataChange(f: FunctionDeviceSupportData?) {
                 if (f == null) return
                 if (f.wathcDay > 0) b.watchDays = f.wathcDay
+                if (f.originProtcolVersion > 0) b.originProtocolVersion = f.originProtcolVersion
+                b.isSleepPrecision = isSupported(f.precisionSleep)
                 b.emit("capabilities", mapOf(
                     "bp" to isSupported(f.bp),
                     "ecg" to isSupported(f.ecg),
                     "spo2" to isSupported(f.spo2H),
                     "temperature" to isSupported(f.temperatureFunction),
                     "watchDays" to b.watchDays,
+                    "originProtocolVersion" to b.originProtocolVersion,
+                    "sleepPrecision" to b.isSleepPrecision,
                 ))
             }
             override fun onDeviceFunctionPackage1Report(p: DeviceFunctionPackage1?) {}

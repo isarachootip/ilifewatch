@@ -2,18 +2,30 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <!-- Bluetooth: Android 11 ลงไป -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.BLUETOOTH" android:maxSdkVersion="30" />
     <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" android:maxSdkVersion="30" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
-    <!-- Bluetooth: Android 12 ขึ้นไป -->
-    <uses-permission android:name="android.permission.BLUETOOTH_SCAN" />
-    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
+    <!-- Bluetooth: Android 12 ขึ้นไป (ตาม Joeme Fit SDK 260626_new Demo ต้องใส่ neverForLocation เพื่อให้สแกนเจอเสมอ) -->
+    <uses-permission
+        android:name="android.permission.BLUETOOTH_SCAN"
+        android:usesPermissionFlags="neverForLocation"
+        tools:targetApi="s" />
+    <uses-permission
+        android:name="android.permission.BLUETOOTH_ADVERTISE"
+        android:usesPermissionFlags="neverForLocation"
+        tools:targetApi="s" />
+    <uses-permission
+        android:name="android.permission.BLUETOOTH_CONNECT"
+        android:usesPermissionFlags="neverForLocation"
+        tools:targetApi="s" />
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <uses-feature android:name="android.hardware.bluetooth_le" android:required="true" />
+    <uses-feature android:name="android.bluetooth.le" android:required="true" />
 
     <application
         android:label="iLife Watch"
@@ -39,8 +51,11 @@
             </intent-filter>
         </activity>
 
-        <!-- service ที่ Veepoo SDK ต้องใช้ (README ของ SDK ข้อ 2) -->
-        <service android:name="com.inuker.bluetooth.library.BluetoothService" />
+        <!-- service ที่ Veepoo SDK ต้องใช้ (ตาม Joeme Fit SDK 260626_new) -->
+        <service
+            android:name="com.inuker.bluetooth.library.BluetoothService"
+            android:enabled="true"
+            android:exported="false" />
 
         <meta-data android:name="flutterEmbedding" android:value="2" />
     </application>

@@ -31,18 +31,23 @@ class VeepooBridge(context: Context, messenger: BinaryMessenger) :
 
     internal val vp: VPOperateManager = VPOperateManager.getInstance().also {
         it.init(context.applicationContext)
+        it.setDeviceShowConfirm(true)
     }
     internal val main = Handler(Looper.getMainLooper())
     private var sink: EventChannel.EventSink? = null
 
     internal var currentMac: String? = null
+    internal var currentDeviceName: String = "F520Pro"
     internal var password: String = "0000"
     internal var watchDays = DEFAULT_WATCH_DAYS
+    internal var originProtocolVersion: Int = 3
+    internal var isSleepPrecision: Boolean = false
 
     private val connectionHandler = VeepooConnectionHandler(this)
     private val measureHandler = VeepooMeasureHandler(this)
     private val liveVitalHandler = VeepooLiveVitalHandler(this)
     private val syncHandler = VeepooSyncHandler(this)
+    private val manualReader = VeepooManualReader(this)
 
     init {
         MethodChannel(messenger, "ite.watch/method").setMethodCallHandler(this)
@@ -82,7 +87,8 @@ class VeepooBridge(context: Context, messenger: BinaryMessenger) :
                 }
                 "connect" -> {
                     password = call.argument<String>("password") ?: "0000"
-                    connectionHandler.connect(call.argument<String>("mac")!!)
+                    val name = call.argument<String>("name")?.takeIf { it.isNotBlank() } ?: "F520Pro"
+                    connectionHandler.connect(call.argument<String>("mac")!!, name)
                     result.success(null)
                 }
                 "disconnect" -> {
@@ -152,7 +158,7 @@ class VeepooBridge(context: Context, messenger: BinaryMessenger) :
                 }
                 "readWatchMeasurements" -> {
                     val since = (call.argument<Number>("since") ?: 0).toLong()
-                    syncHandler.readManual(since)
+                    manualReader.readManual(since)
                     result.success(null)
                 }
                 else -> result.notImplemented()

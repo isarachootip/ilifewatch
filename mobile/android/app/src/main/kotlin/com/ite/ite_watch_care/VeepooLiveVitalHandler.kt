@@ -61,6 +61,27 @@ internal class VeepooLiveVitalHandler(private val b: VeepooBridge) {
     private val tempListener = object : ITemptureDetectDataListener {
         override fun onDataChange(d: TemptureDetectData?) {
             if (d == null) return
+            // ตาม BodyTemperatureDetectActivity.java ใน Joeme Fit SDK 260626_new:
+            // oprate: 0x00 = ไม่รองรับ, 0x01 = กำลังวัด, 0x02 = หยุดวัด
+            // deviceState: 0 = ปกติ, 1..6 = เครื่องไม่ว่าง, 8 = แบตต่ำ, 9 = เซนเซอร์ผิดพลาด
+            if (d.oprate == 0) {
+                b.emit("tempError", mapOf("status" to "NO_FUNCTION"))
+                return
+            }
+            when (d.deviceState) {
+                in 1..6 -> {
+                    b.emit("tempError", mapOf("status" to "DEVICE_BUSY"))
+                    return
+                }
+                8 -> {
+                    b.emit("tempError", mapOf("status" to "LOW_POWER"))
+                    return
+                }
+                9 -> {
+                    b.emit("tempError", mapOf("status" to "SENSOR_ERROR"))
+                    return
+                }
+            }
             if (d.tempture > 30f && d.progress >= 100) {
                 b.emit("tempResult", mapOf(
                     "celsius" to d.tempture.toDouble(),
@@ -68,7 +89,7 @@ internal class VeepooLiveVitalHandler(private val b: VeepooBridge) {
                     "progress" to d.progress,
                     "at" to b.nowSec(),
                 ))
-            } else {
+            } else if (d.oprate != 2) {
                 b.emit("tempProgress", mapOf(
                     "progress" to d.progress,
                     "celsius" to if (d.tempture > 0f) d.tempture.toDouble() else null,

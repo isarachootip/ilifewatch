@@ -1,15 +1,21 @@
 package com.ite.ite_watch_care
 
-import com.veepoo.protocol.listener.data.AbsDeviceManualDetectDataListener
 import com.veepoo.protocol.listener.data.IAllHealthDataListener
+import com.veepoo.protocol.listener.data.IOriginData3Listener
+import com.veepoo.protocol.listener.data.ISleepDataListener
 import com.veepoo.protocol.listener.data.ISpo2hOriginDataListener
-import com.veepoo.protocol.model.datas.BloodPressureManualData
+import com.veepoo.protocol.model.datas.HRVOriginData
 import com.veepoo.protocol.model.datas.OriginData
+import com.veepoo.protocol.model.datas.OriginData3
 import com.veepoo.protocol.model.datas.OriginHalfHourData
 import com.veepoo.protocol.model.datas.SleepData
 import com.veepoo.protocol.model.datas.Spo2hOriginData
-import com.veepoo.protocol.model.enums.DeviceManualDataType
 
+/**
+ * ซิงค์ข้อมูลย้อนหลังจากนาฬิกา (ตาม HealthDataReadOptActivity.java & OperaterActivity.java ใน Joeme Fit SDK 260626_new)
+ * - รองรับทั้ง Origin Protocol v3+ (OriginData3 สำหรับ F520Pro) และ OriginData รุ่นก่อนหน้า
+ * - รองรับการอ่านข้อมูลการนอนหลับทั้ง SleepData และ SleepPrecisionData
+ */
 internal class VeepooSyncHandler(private val b: VeepooBridge) {
 
     fun syncHistory() {
@@ -20,18 +26,101 @@ internal class VeepooSyncHandler(private val b: VeepooBridge) {
             vitals.clear()
         }
 
+        if (b.originProtocolVersion >= 3) {
+            b.vp.readSleepData(b.writeResp, object : ISleepDataListener {
+                override fun onSleepDataChange(day: String?, s: SleepData?) {
+                    emitSleep(s)
+                }
+                override fun onSleepProgress(p: Float) {
+                    b.emit("syncProgress", mapOf("progress" to p.toDouble() * 0.2))
+                }
+                override fun onSleepProgressDetail(day: String?, pack: Int) {}
+                override fun onReadSleepComplete() {
+                    readOriginV3(vitals, ::flush)
+                }
+            }, b.watchDays)
+        } else {
+            syncLegacyAllHealth(vitals, ::flush)
+        }
+    }
+
+    private fun emitSleep(s: SleepData?) {
+        if (s == null || s.sleepDown == null || s.sleepUp == null) return
+        b.emit("sleep", mapOf(
+            "start" to b.toEpochSec(s.sleepDown),
+            "end" to b.toEpochSec(s.sleepUp),
+            "deep" to s.deepSleepTime,
+            "light" to s.lowSleepTime,
+            "wake" to s.wakeCount,
+            "quality" to s.sleepQulity,
+            "curve" to s.sleepLine,
+        ))
+    }
+
+    private fun readOriginV3(vitals: ArrayList<Map<String, Any?>>, flush: (Boolean) -> Unit) {
+        b.vp.readOriginData(b.writeResp, object : IOriginData3Listener {
+            override fun onOriginFiveMinuteListDataChange(list: List<OriginData3>?) {
+                list?.forEach { o ->
+                    val t = o.getmTime() ?: return@forEach
+                    val at = b.toEpochSec(t)
+                    if (o.rateValue > 0) vitals.add(b.sample(at, "heart_rate", o.rateValue.toDouble()))
+                    if (o.stepValue > 0) vitals.add(b.sample(at, "steps", o.stepValue.toDouble()))
+                    if (o.temperature > 0) vitals.add(b.sample(at, "temperature", o.temperature))
+                    val oxy = o.oxygens?.lastOrNull { it in 50..100 }
+                    if (oxy != null) vitals.add(b.sample(at, "spo2", oxy.toDouble()))
+                    if (o.pressure > 0) vitals.add(b.sample(at, "stress", o.pressure.toDouble()))
+                    if (o.highValue > 0 && o.lowValue > 0) {
+                        b.emit("bpResult", mapOf(
+                            "method" to "ppg", "status" to "SUCCESS", "source" to "auto",
+                            "systolic" to o.highValue, "diastolic" to o.lowValue, "at" to at,
+                        ))
+                    }
+                    flush(false)
+                }
+            }
+
+            override fun onOriginHalfHourDataChange(h: OriginHalfHourData?) {}
+
+            override fun onOriginHRVOriginListDataChange(list: List<HRVOriginData>?) {
+                list?.forEach { h ->
+                    val t = h.getmTime() ?: return@forEach
+                    val v = h.hrvValue
+                    if (v in 1..254) vitals.add(b.sample(b.toEpochSec(t), "hrv", v.toDouble()))
+                }
+                flush(false)
+            }
+
+            override fun onOriginSpo2OriginListDataChange(list: List<Spo2hOriginData>?) {
+                list?.forEach { d ->
+                    val t = d.getmTime() ?: return@forEach
+                    if (d.oxygenValue in 50..100) {
+                        vitals.add(b.sample(b.toEpochSec(t), "spo2", d.oxygenValue.toDouble()))
+                    }
+                }
+                flush(false)
+            }
+
+            override fun onReadOriginProgressDetail(day: Int, date: String?, all: Int, cur: Int) {}
+
+            override fun onReadOriginProgress(p: Float) {
+                b.emit("syncProgress", mapOf("progress" to 0.2 + p.toDouble() * 0.8))
+            }
+
+            override fun onReadOriginComplete() {
+                flush(true)
+                b.emit("syncDone")
+            }
+        }, b.watchDays)
+    }
+
+    private fun syncLegacyAllHealth(vitals: ArrayList<Map<String, Any?>>, flush: (Boolean) -> Unit) {
         b.vp.readAllHealthData(object : IAllHealthDataListener {
             override fun onProgress(p: Float) {
                 b.emit("syncProgress", mapOf("progress" to p.toDouble() * 0.8))
             }
 
             override fun onSleepDataChange(day: String?, s: SleepData?) {
-                if (s == null || s.sleepDown == null || s.sleepUp == null) return
-                b.emit("sleep", mapOf(
-                    "start" to b.toEpochSec(s.sleepDown), "end" to b.toEpochSec(s.sleepUp),
-                    "deep" to s.deepSleepTime, "light" to s.lowSleepTime,
-                    "wake" to s.wakeCount, "quality" to s.sleepQulity, "curve" to s.sleepLine,
-                ))
+                emitSleep(s)
             }
 
             override fun onReadSleepComplete() {}
@@ -48,14 +137,14 @@ internal class VeepooSyncHandler(private val b: VeepooBridge) {
                         "systolic" to o.highValue, "diastolic" to o.lowValue, "at" to at,
                     ))
                 }
-                flush()
+                flush(false)
             }
 
             override fun onOringinHalfHourDataChange(o: OriginHalfHourData?) {}
 
             override fun onReadOriginComplete() {
-                flush(force = true)
-                readSpo2(vitals) // ต่อด้วย SpO2 แล้วจึงส่ง syncDone
+                flush(true)
+                readSpo2(vitals)
             }
         }, b.watchDays)
     }
@@ -82,34 +171,5 @@ internal class VeepooSyncHandler(private val b: VeepooBridge) {
                 b.emit("syncDone")
             }
         }, b.watchDays)
-    }
-
-    /** ผลที่ผู้ใช้กดวัดเองบนนาฬิกา (ความดันปั๊มลมจะอยู่ในนี้) */
-    fun readManual(sinceSec: Long) {
-        // ตาม bytecode ของ vp_aa: list1 (byte 6..9) คือชนิดข้อมูลที่ขออ่าน, list2 (byte 10..13) คือชนิดที่เครื่องรองรับ
-        val requested = listOf(DeviceManualDataType.BLOOD_PRESSURE)
-        val supported = b.vp.supportManualDetectTypes?.takeIf { it.isNotEmpty() } ?: requested
-        b.vp.readDeviceManualData(
-            b.writeResp,
-            sinceSec,
-            requested,
-            supported,
-            object : AbsDeviceManualDetectDataListener() {
-                override fun onBloodPressureDataChange(list: List<BloodPressureManualData>?) {
-                    list?.forEach { d ->
-                        b.emit("bpResult", mapOf(
-                            // measurementMode: 0 = แสง (PPG), 1 = ถุงลม (Cuff)
-                            "method" to if (d.measurementMode == 1) "cuff" else "ppg",
-                            "status" to "SUCCESS", "source" to "watch",
-                            "systolic" to d.systolic, "diastolic" to d.diastolic,
-                            "pulse" to d.heartRate, "credibility" to d.resultCredibility,
-                            "at" to d.timeStamp,
-                        ))
-                    }
-                }
-                override fun onReadComplete() { b.emit("manualDone") }
-                override fun onReadFail() { b.emit("manualDone", mapOf("error" to true)) }
-            },
-        )
     }
 }
