@@ -5,31 +5,38 @@ class ScannedWatch {
   final String name;
   final String mac;
   final int rssi;
-  ScannedWatch({required this.name, required this.mac, required this.rssi});
+  final bool isVp;
+  ScannedWatch({required this.name, required this.mac, required this.rssi, this.isVp = false});
 
   factory ScannedWatch.fromMap(Map m) => ScannedWatch(
         name: (m['name'] ?? '') as String,
         mac: (m['mac'] ?? '') as String,
         rssi: (m['rssi'] ?? 0) as int,
+        isVp: m['isVp'] == true,
       );
+
+  bool isWatchCandidate({String? pairedMac}) {
+    if (pairedMac != null && mac.toUpperCase() == pairedMac.toUpperCase()) return true;
+    final n = name.trim().toUpperCase();
+    const blocked = ['CAR MULTIMEDIA', 'SHOKZ', 'OPENDOTS', 'AIRPODS', 'BUDS', 'SPEAKER', 'HANDSFREE', 'AUDIO', 'TV', 'IDEA'];
+    if (blocked.any(n.contains)) return false;
+    if (isVp) return true;
+    const watchKeys = ['F520', 'ILIFE', 'VEEPOO', 'JOEME', 'HBAND', 'H BAND', 'WATCH', 'E500', 'E400', 'ET5', 'ET4', 'G08', 'RIG'];
+    return watchKeys.any(n.contains);
+  }
+
+  bool get isPrimaryF520 => name.toUpperCase().contains('F520') || isVp;
 }
 
 enum WatchConnection { disconnected, connecting, connected, ready, failed }
 
-WatchConnection connectionFromString(String s) {
-  switch (s) {
-    case 'connecting':
-      return WatchConnection.connecting;
-    case 'connected':
-      return WatchConnection.connected;
-    case 'ready': // เชื่อมต่อ + ยืนยันรหัสผ่านสำเร็จ พร้อมสั่งงาน
-      return WatchConnection.ready;
-    case 'failed':
-      return WatchConnection.failed;
-    default:
-      return WatchConnection.disconnected;
-  }
-}
+WatchConnection connectionFromString(String s) => switch (s) {
+      'connecting' => WatchConnection.connecting,
+      'connected' => WatchConnection.connected,
+      'ready' => WatchConnection.ready, // เชื่อมต่อ + ยืนยันรหัสผ่านสำเร็จ พร้อมสั่งงาน
+      'failed' => WatchConnection.failed,
+      _ => WatchConnection.disconnected,
+    };
 
 /// ผลวัดความดัน 1 ครั้ง
 class BpReading {
@@ -78,12 +85,8 @@ class BpReading {
 /// ผลการวัด ECG 1 ครั้ง (เก็บ waveform ดิบไว้ส่งเซิร์ฟเวอร์)
 class EcgRecord {
   final DateTime measuredAt;
-  final int durationSec;
-  final int sampleRateHz;
-  final int? avgHeartRate;
-  final int? avgHrv;
-  final int? avgQt;
-  final int? avgRespRate;
+  final int durationSec, sampleRateHz;
+  final int? avgHeartRate, avgHrv, avgQt, avgRespRate;
   final List<int> waveform;
 
   EcgRecord({
@@ -131,11 +134,8 @@ class VitalSample {
 }
 
 class SleepSession {
-  final DateTime start;
-  final DateTime end;
-  final int deepMinutes;
-  final int lightMinutes;
-  final int wakeCount;
+  final DateTime start, end;
+  final int deepMinutes, lightMinutes, wakeCount;
   final int? quality;
 
   /// 1 ตัวอักษรต่อ 5 นาที (0=หลับตื้น 1=หลับลึก 2=ตื่น) ตามรูปแบบของ SDK
@@ -164,10 +164,7 @@ class SleepSession {
 
 class UserProfile {
   final bool isMale;
-  final int heightCm;
-  final int weightKg;
-  final int birthYear;
-  final int stepGoal;
+  final int heightCm, weightKg, birthYear, stepGoal;
   UserProfile({
     required this.isMale,
     required this.heightCm,

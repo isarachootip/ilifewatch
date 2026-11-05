@@ -74,12 +74,12 @@ class WatchService {
   Future<void> stopScan() => _method.invokeMethod('stopScan');
 
   /// เชื่อมต่อ แล้วรอจนยืนยันรหัสผ่านสำเร็จ (state = ready)
-  Future<void> connect(String mac, {String password = '0000'}) async {
+  Future<void> connect(String mac, {String name = 'F520Pro', String password = '0000'}) async {
     ensureListening();
     final ready = connection
         .firstWhere((s) => s == WatchConnection.ready || s == WatchConnection.failed)
         .timeout(const Duration(seconds: 40));
-    await _method.invokeMethod('connect', {'mac': mac, 'password': password});
+    await _method.invokeMethod('connect', {'mac': mac, 'name': name, 'password': password});
     final s = await ready;
     if (s != WatchConnection.ready) {
       throw PlatformException(code: 'CONNECT_FAILED', message: 'เชื่อมต่อนาฬิกาไม่สำเร็จ');

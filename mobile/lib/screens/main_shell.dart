@@ -66,12 +66,13 @@ class _MainShellState extends State<MainShell> {
 
   Future<void> _reconnect() async {
     final mac = AppState.instance.pairedMac;
+    final name = AppState.instance.pairedName ?? 'F520Pro';
     if (mac == null || _reconnecting) return;
     _reconnecting = true;
     try {
       // ขั้นที่ 1: เชื่อมต่อตรงด้วย MAC ทันทีโดยไม่ต้องรอสแกน
       try {
-        await _watch.connect(mac).timeout(const Duration(seconds: 12));
+        await _watch.connect(mac, name: name).timeout(const Duration(seconds: 12));
         await SyncService.instance.afterConnect();
         return;
       } catch (_) {}
@@ -80,7 +81,7 @@ class _MainShellState extends State<MainShell> {
       final found = _watch.scanResults.firstWhere((w) => w.mac == mac).timeout(const Duration(seconds: 15));
       await _watch.startScan();
       await found;
-      await _watch.connect(mac);
+      await _watch.connect(mac, name: name);
       await SyncService.instance.afterConnect();
     } catch (_) {
       await _watch.stopScan();

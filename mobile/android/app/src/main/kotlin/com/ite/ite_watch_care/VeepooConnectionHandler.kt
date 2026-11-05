@@ -2,8 +2,6 @@ package com.ite.ite_watch_care
 
 import com.inuker.bluetooth.library.Constants
 import com.inuker.bluetooth.library.model.BleGattProfile
-import com.inuker.bluetooth.library.search.SearchResult
-import com.inuker.bluetooth.library.search.response.SearchResponse
 import com.veepoo.protocol.listener.base.IABleConnectStatusListener
 import com.veepoo.protocol.listener.base.IConnectResponse
 import com.veepoo.protocol.listener.base.INotifyResponse
@@ -34,27 +32,21 @@ import java.util.concurrent.atomic.AtomicBoolean
 
 internal class VeepooConnectionHandler(private val b: VeepooBridge) {
 
-    @android.annotation.SuppressLint("MissingPermission")
-    fun startScan() {
-        try {
-            android.bluetooth.BluetoothAdapter.getDefaultAdapter()?.bondedDevices?.forEach { d ->
-                b.emit("scan", mapOf("name" to (d.name ?: ""), "mac" to d.address, "rssi" to -40))
-            }
-        } catch (_: Throwable) {}
-        b.vp.startScanDevice(object : SearchResponse {
-            override fun onSearchStarted() {}
-            override fun onDeviceFounded(r: SearchResult?) {
-                if (r == null) return
-                b.emit("scan", mapOf("name" to (r.name ?: ""), "mac" to r.address, "rssi" to r.rssi))
-            }
-            override fun onSearchStopped() {}
-            override fun onSearchCanceled() {}
-        })
-    }
+    private val scanner = VeepooWatchScanner(b)
+
+    fun startScan() = scanner.startScan()
+
+    fun stopScan() = scanner.stopScan()
 
     fun connect(mac: String, deviceName: String = "F520Pro", attempt: Int = 0) {
-        b.vp.stopScanDevice()
-        try { b.vp.disconnectWatch(b.writeResp) } catch (_: Throwable) {}
+        scanner.stopScan()
+        val delayMs = if (attempt > 0) {
+            // disconnectWatch มี internal timer 500ms (VPOperateManager$vp_f) จึงต้องรอ 750ms ก่อนต่อซ้ำเพื่อไม่ให้ตัดตัวเอง
+            try { b.vp.disconnectWatch(b.writeResp) } catch (_: Throwable) {}
+            750L
+        } else {
+            150L
+        }
         b.currentMac = mac
         b.currentDeviceName = deviceName
         b.emit("connection", mapOf("state" to "connecting"))
@@ -70,8 +62,8 @@ internal class VeepooConnectionHandler(private val b: VeepooBridge) {
                 override fun connectState(code: Int, profile: BleGattProfile?, isOadModel: Boolean) {
                     if (code == Constants.REQUEST_SUCCESS) {
                         b.emit("connection", mapOf("state" to "connected"))
-                    } else if (attempt < 1) {
-                        b.main.postDelayed({ connect(mac, deviceName, attempt + 1) }, 1200)
+                    } else if (attempt < 2) {
+                        b.main.postDelayed({ connect(mac, deviceName, attempt + 1) }, 600)
                     } else {
                         b.emit("connection", mapOf("state" to "failed", "detail" to "connect code=$code"))
                     }
@@ -80,14 +72,14 @@ internal class VeepooConnectionHandler(private val b: VeepooBridge) {
                 override fun notifyState(state: Int) {
                     if (state == Constants.REQUEST_SUCCESS) {
                         b.main.postDelayed({ confirmPassword() }, 200)
-                    } else if (attempt < 1) {
-                        b.main.postDelayed({ connect(mac, deviceName, attempt + 1) }, 1200)
+                    } else if (attempt < 2) {
+                        b.main.postDelayed({ connect(mac, deviceName, attempt + 1) }, 600)
                     } else {
                         b.emit("connection", mapOf("state" to "failed", "detail" to "notify state=$state"))
                     }
                 }
             })
-        }, 300)
+        }, delayMs)
     }
 
     private fun confirmPassword() {

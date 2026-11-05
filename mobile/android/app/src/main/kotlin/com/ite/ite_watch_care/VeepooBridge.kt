@@ -21,7 +21,7 @@ import java.util.Calendar
  *   connectDevice -> (notifyState == REQUEST_SUCCESS) -> confirmDevicePwd -> syncPersonInfo
  * นาฬิกาไม่รองรับคำสั่งพร้อมกัน ฝั่ง Dart (WatchService) มีคิวคุมให้ทำทีละคำสั่ง
  */
-class VeepooBridge(private val appContext: Context, messenger: BinaryMessenger) :
+class VeepooBridge(internal val appContext: Context, messenger: BinaryMessenger) :
     MethodChannel.MethodCallHandler, EventChannel.StreamHandler {
 
     companion object {
@@ -31,7 +31,8 @@ class VeepooBridge(private val appContext: Context, messenger: BinaryMessenger) 
 
     internal val vp: VPOperateManager = VPOperateManager.getInstance().also {
         it.init(appContext.applicationContext)
-        it.setDeviceShowConfirm(true)
+        // ปิดการรอยืนยันบนหน้าจอนาฬิกา (无需连接确认) เพื่อเชื่อมต่อและ Auto-Reconnect ทันทีโดยไม่ติด Timeout 12 วินาที
+        it.setDeviceShowConfirm(false)
     }
     internal val main = Handler(Looper.getMainLooper())
     private var sink: EventChannel.EventSink? = null
@@ -79,7 +80,7 @@ class VeepooBridge(private val appContext: Context, messenger: BinaryMessenger) 
         try {
             when (call.method) {
                 "startScan" -> { connectionHandler.startScan(); result.success(null) }
-                "stopScan" -> { vp.stopScanDevice(); result.success(null) }
+                "stopScan" -> { connectionHandler.stopScan(); result.success(null) }
                 "connect" -> {
                     password = call.argument<String>("password") ?: "0000"
                     val name = call.argument<String>("name")?.takeIf { it.isNotBlank() } ?: "F520Pro"
