@@ -52,8 +52,9 @@ internal class VeepooConnectionHandler(private val b: VeepooBridge) {
         })
     }
 
-    fun connect(mac: String, deviceName: String = "F520Pro") {
+    fun connect(mac: String, deviceName: String = "F520Pro", attempt: Int = 0) {
         b.vp.stopScanDevice()
+        try { b.vp.disconnectWatch(b.writeResp) } catch (_: Throwable) {}
         b.currentMac = mac
         b.currentDeviceName = deviceName
         b.emit("connection", mapOf("state" to "connecting"))
@@ -64,21 +65,29 @@ internal class VeepooConnectionHandler(private val b: VeepooBridge) {
                 }
             }
         })
-        b.vp.connectDevice(mac, deviceName, object : IConnectResponse {
-            override fun connectState(code: Int, profile: BleGattProfile?, isOadModel: Boolean) {
-                if (code == Constants.REQUEST_SUCCESS) {
-                    b.emit("connection", mapOf("state" to "connected"))
-                } else {
-                    b.emit("connection", mapOf("state" to "failed", "detail" to "connect code=$code"))
+        b.main.postDelayed({
+            b.vp.connectDevice(mac, deviceName, object : IConnectResponse {
+                override fun connectState(code: Int, profile: BleGattProfile?, isOadModel: Boolean) {
+                    if (code == Constants.REQUEST_SUCCESS) {
+                        b.emit("connection", mapOf("state" to "connected"))
+                    } else if (attempt < 1) {
+                        b.main.postDelayed({ connect(mac, deviceName, attempt + 1) }, 1200)
+                    } else {
+                        b.emit("connection", mapOf("state" to "failed", "detail" to "connect code=$code"))
+                    }
                 }
-            }
-        }, object : INotifyResponse {
-            override fun notifyState(state: Int) {
-                // ต้องรอ notify สำเร็จก่อนจึงยืนยันรหัสผ่านได้
-                if (state == Constants.REQUEST_SUCCESS) confirmPassword()
-                else b.emit("connection", mapOf("state" to "failed", "detail" to "notify state=$state"))
-            }
-        })
+            }, object : INotifyResponse {
+                override fun notifyState(state: Int) {
+                    if (state == Constants.REQUEST_SUCCESS) {
+                        b.main.postDelayed({ confirmPassword() }, 200)
+                    } else if (attempt < 1) {
+                        b.main.postDelayed({ connect(mac, deviceName, attempt + 1) }, 1200)
+                    } else {
+                        b.emit("connection", mapOf("state" to "failed", "detail" to "notify state=$state"))
+                    }
+                }
+            })
+        }, 300)
     }
 
     private fun confirmPassword() {

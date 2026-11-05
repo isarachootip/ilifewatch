@@ -37,7 +37,9 @@ class _MainShellState extends State<MainShell> {
     _conn = _watch.state;
     _connSub = _watch.connection.listen((c) {
       if (mounted) setState(() => _conn = c);
-      if (c == WatchConnection.disconnected) _scheduleReconnect();
+      if (c == WatchConnection.disconnected || c == WatchConnection.failed) {
+        _scheduleReconnect();
+      }
     });
     _progSub = SyncService.instance.progress.stream.listen((p) {
       if (mounted) setState(() => _syncProgress = p >= 1 ? null : p);
@@ -67,7 +69,15 @@ class _MainShellState extends State<MainShell> {
     if (mac == null || _reconnecting) return;
     _reconnecting = true;
     try {
-      final found = _watch.scanResults.firstWhere((w) => w.mac == mac).timeout(const Duration(seconds: 20));
+      // ขั้นที่ 1: เชื่อมต่อตรงด้วย MAC ทันทีโดยไม่ต้องรอสแกน
+      try {
+        await _watch.connect(mac).timeout(const Duration(seconds: 12));
+        await SyncService.instance.afterConnect();
+        return;
+      } catch (_) {}
+
+      // ขั้นที่ 2: หากต่อตรงไม่สำเร็จ ให้สแกนค้นหาสัญญาณ BLE แล้วต่อซ้ำ
+      final found = _watch.scanResults.firstWhere((w) => w.mac == mac).timeout(const Duration(seconds: 15));
       await _watch.startScan();
       await found;
       await _watch.connect(mac);
