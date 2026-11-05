@@ -14,6 +14,7 @@ from datetime import datetime, timedelta, timezone
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from . import line_oa
 from .models import Alert, Patient
 
 log = logging.getLogger("alerts")
@@ -88,19 +89,6 @@ def evaluate(db: Session, p: Patient, bp: list, vitals: list) -> list[Alert]:
     return out
 
 
-def _send_line_push(token: str, target_id: str, text: str) -> bool:
-    if not token or not target_id:
-        return False
-    payload = json.dumps({"to": target_id, "messages": [{"type": "text", "text": text}]}).encode()
-    req = urllib.request.Request(
-        "https://api.line.me/v2/bot/message/push",
-        data=payload,
-        headers={"Content-Type": "application/json", "Authorization": f"Bearer {token}"},
-    )
-    urllib.request.urlopen(req, timeout=5).close()
-    return True
-
-
 def _send_webhook(url: str, payload_dict: dict) -> bool:
     if not url:
         return False
@@ -111,15 +99,14 @@ def _send_webhook(url: str, payload_dict: dict) -> bool:
 
 
 def notify(p: Patient, alerts: list[Alert]) -> None:
-    """ส่งต่อแจ้งเตือนไปยัง Webhook และ LINE Messaging API ของหน่วยงาน"""
+    """ส่งต่อแจ้งเตือนไปยัง Webhook และ LINE Messaging API (Push หรือ Broadcast) ของหน่วยงาน"""
     if not alerts:
         return
     org = p.org
     url = org.alert_webhook_url
     cfg = org.alert_thresholds or {}
-    line_token = cfg.get("line_channel_token")
-    line_target = cfg.get("line_target_id")
-    if not url and not (line_token and line_target):
+    has_line = bool(cfg.get("line_channel_token") or (cfg.get("line_channel_id") and cfg.get("line_channel_secret")))
+    if not url and not has_line:
         return
     for a in alerts:
         if url:
@@ -127,10 +114,10 @@ def notify(p: Patient, alerts: list[Alert]) -> None:
                 _send_webhook(url, {"patient_id": p.id, "patient_name": p.display_name, "level": a.level, "message": a.message})
             except Exception as e:
                 log.warning("webhook failed: %s", e)
-        if line_token and line_target:
+        if has_line:
             try:
                 prefix = "🚨 [ฉุกเฉิน]" if a.level == "critical" else "⚠️ [เฝ้าระวัง]"
-                _send_line_push(line_token, line_target, f"{prefix} {p.display_name}: {a.message}")
+                line_oa.send_line_message(cfg, f"{prefix} {p.display_name}: {a.message}")
             except Exception as e:
                 log.warning("line push failed: %s", e)
 
@@ -139,8 +126,7 @@ def send_test_notification(org) -> dict:
     """ส่งข้อความทดสอบไปยัง Webhook และ LINE OA ที่ตั้งค่าไว้"""
     url = org.alert_webhook_url
     cfg = org.alert_thresholds or {}
-    line_token = cfg.get("line_channel_token")
-    line_target = cfg.get("line_target_id")
+    has_line = bool(cfg.get("line_channel_token") or (cfg.get("line_channel_id") and cfg.get("line_channel_secret")))
     results = {"webhook": "skipped", "line": "skipped"}
     if url:
         try:
@@ -148,10 +134,11 @@ def send_test_notification(org) -> dict:
             results["webhook"] = "sent"
         except Exception as e:
             results["webhook"] = f"error: {e}"
-    if line_token and line_target:
+    if has_line:
         try:
-            _send_line_push(line_token, line_target, f"✅ [{org.name}] ทดสอบการเชื่อมต่อแจ้งเตือน iLife Watch Care สำเร็จ")
-            results["line"] = "sent"
+            results["line"] = line_oa.send_line_message(
+                cfg, f"✅ [{org.name}] ทดสอบการเชื่อมต่อแจ้งเตือน iLife Watch Care สำเร็จ"
+            )
         except Exception as e:
             results["line"] = f"error: {e}"
     return results

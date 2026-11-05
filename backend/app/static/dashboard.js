@@ -15,11 +15,7 @@ async function api(path, opt = {}) {
 
 function logout() { S = null; try { sessionStorage.removeItem('wc_session'); } catch (e) {} render(); }
 $('#logout').onclick = logout;
-$('#langSelect').onchange = e => {
-  curLang = e.target.value;
-  try { localStorage.setItem('wc_lang', curLang); } catch (_) {}
-  render();
-};
+$('#langSelect').onchange = e => { curLang = e.target.value; try { localStorage.setItem('wc_lang', curLang); } catch (_) {} render(); };
 $('#go').onclick = async () => {
   $('#lerr').textContent = '';
   try {
@@ -155,17 +151,24 @@ async function viewAgg() {
 }
 
 async function viewAdd() {
-  const nf = await api('/v1/staff/org/notifications').catch(() => ({ webhook_url: '', line_target_id: '', line_token_masked: '' }));
+  const nf = await api('/v1/staff/org/notifications').catch(() => ({ webhook_url: '', line_connected: false }));
+  const lstat = nf.line_connected
+    ? `<div class="ok" style="margin-bottom:8px">🟢 เชื่อมต่อแล้ว: ${esc(nf.line_oa_name || 'LINE OA')} ${nf.line_basic_id ? '(' + esc(nf.line_basic_id) + ')' : ''} · โหมด: ${nf.line_mode === 'group' ? 'กลุ่มพยาบาล (' + esc(nf.line_target_id) + ')' : 'Broadcast ทุกคน'}</div>`
+    : `<div class="muted" style="margin-bottom:8px">⚪ ยังไม่ได้เชื่อมต่อ LINE OA (กรอกชื่อ LINE OA + Channel ID + Secret Key แล้วกด Connect)</div>`;
   $('#view').innerHTML = `<div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(320px,1fr))">
   <div class="card"><h3 style="margin-top:0">${t('addTitle')}</h3>
   <p><input id="n" placeholder="${t('displayName')}"></p><p class="row"><select id="sx" style="width:auto"><option value="F">${t('female')}</option><option value="M">${t('male')}</option></select>
   <input id="by" type="number" placeholder="${t('birthYear')}" style="flex:1"></p><p class="row"><input id="h" type="number" placeholder="${t('heightCm')}" style="flex:1"><input id="w" type="number" placeholder="${t('weightKg')}" style="flex:1"></p>
   <p><input id="ec" placeholder="${t('emergPlaceholder')}"></p><p><button class="primary" id="save">${t('createBtn')}</button></p><div id="out"></div></div>
-  <div class="card"><h3 style="margin-top:0">${t('notifTitle') || 'ตั้งค่าแจ้งเตือนภายนอก (LINE OA & Webhook)'}</h3>
-  <p><input id="wh" value="${esc(nf.webhook_url)}" placeholder="Webhook URL (Nurse Call / n8n)"></p>
+  <div class="card"><h3 style="margin-top:0">${t('notifTitle') || 'ตั้งค่าแจ้งเตือนภายนอก (LINE OA & Webhook)'}</h3>${lstat}
+  <p><input id="loa" value="${esc(nf.line_oa_name || '')}" placeholder="ชื่อ LINE OA (เช่น ศูนย์ดูแลบ้านอุ่นใจ)"></p>
+  <p class="row"><input id="lcid" value="${esc(nf.line_channel_id || '')}" placeholder="LINE Channel ID" style="flex:1"><input id="lsec" type="password" placeholder="Secret Key (Channel Secret)" style="flex:1"></p>
+  <details style="margin-bottom:8px"><summary class="muted" style="cursor:pointer;font-size:13px">ตั้งค่าขั้นสูง (Access Token / Group ID / Webhook URL)</summary>
   <p><input id="ltok" type="password" placeholder="LINE Channel Access Token ${nf.line_token_masked ? '(' + esc(nf.line_token_masked) + ')' : ''}"></p>
-  <p><input id="ltid" value="${esc(nf.line_target_id)}" placeholder="LINE Target ID (Group ID / User ID)"></p>
-  <p class="row"><button class="primary" id="nsave">${t('saveReview')}</button><button id="ntest">${t('testNotifBtn') || 'ทดสอบส่งแจ้งเตือน'}</button></p>
+  <p><input id="ltid" value="${esc(nf.line_target_id || '')}" placeholder="Group ID / User ID (เว้นว่างเพื่อ Broadcast หรือเชิญบอทเข้ากลุ่มเพื่อจับอัตโนมัติ)"></p>
+  <p class="muted" style="font-size:12px">LINE Webhook URL (จับ Group ID อัตโนมัติ): <code>${esc(location.origin + (nf.line_webhook_path || '/v1/webhooks/line/1'))}</code></p></details>
+  <p><input id="wh" value="${esc(nf.webhook_url || '')}" placeholder="Webhook URL ภายนอก (Nurse Call / HIS)"></p>
+  <p class="row"><button class="primary" id="lconn">🔗 Connect LINE OA</button><button id="nsave">${t('saveReview')}</button><button id="ntest">${t('testNotifBtn') || 'ทดสอบส่งแจ้งเตือน'}</button>${nf.line_connected ? '<button id="ldisc" class="crit">ยกเลิกเชื่อมต่อ</button>' : ''}</p>
   <div id="nout" class="muted"></div></div></div>`;
   $('#save').onclick = async () => {
     try {
@@ -173,6 +176,13 @@ async function viewAdd() {
       $('#out').innerHTML = `<div class="card" style="background:var(--soft)"><b>${t('enrollCode')}:</b> ${esc(r.enrollment_code)}<br><b>PIN:</b> ${esc(r.pin)}<p class="muted">${t('pinOnce')}</p></div>`;
     } catch (e) { $('#out').innerHTML = `<p class="crit">${esc(e.message)}</p>`; }
   };
+  $('#lconn').onclick = async () => {
+    try {
+      await api('/v1/staff/org/line/connect', { method: 'POST', body: JSON.stringify({ line_oa_name: $('#loa').value, channel_id: $('#lcid').value, secret_key: $('#lsec').value, channel_token: $('#ltok').value, target_id: $('#ltid').value }) });
+      await viewAdd();
+    } catch (e) { $('#nout').innerHTML = `<span class="crit">${esc(e.message)}</span>`; }
+  };
+  if ($('#ldisc')) $('#ldisc').onclick = async () => { await api('/v1/staff/org/line/disconnect', { method: 'POST' }); await viewAdd(); };
   $('#nsave').onclick = async () => {
     const body = { webhook_url: $('#wh').value, line_target_id: $('#ltid').value };
     if ($('#ltok').value.trim()) body.line_channel_token = $('#ltok').value.trim();
@@ -184,5 +194,4 @@ async function viewAdd() {
     $('#nout').textContent = `Webhook: ${res.webhook} · LINE OA: ${res.line}`;
   };
 }
-
 render();

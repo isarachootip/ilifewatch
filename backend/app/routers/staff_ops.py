@@ -125,9 +125,19 @@ def get_notification_settings(s: StaffUser = Depends(current_staff), db: Session
     org = db.get(Organization, s.org_id)
     cfg = org.alert_thresholds or {}
     token = cfg.get("line_channel_token") or ""
+    cid = cfg.get("line_channel_id") or ""
+    tid = cfg.get("line_target_id") or ""
+    connected = bool(token or (cid and cfg.get("line_channel_secret")))
     return {
+        "org_id": org.id,
         "webhook_url": org.alert_webhook_url or "",
-        "line_target_id": cfg.get("line_target_id") or "",
+        "line_connected": connected,
+        "line_oa_name": cfg.get("line_oa_name") or "",
+        "line_basic_id": cfg.get("line_basic_id") or "",
+        "line_channel_id": cid,
+        "line_target_id": tid,
+        "line_mode": ("group" if tid else "broadcast") if connected else "disconnected",
+        "line_webhook_path": f"/v1/webhooks/line/{org.id}",
         "has_line_token": bool(token),
         "line_token_masked": (token[:6] + "..." + token[-4:]) if len(token) > 12 else ("***" if token else ""),
     }

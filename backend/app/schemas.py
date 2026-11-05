@@ -108,3 +108,12 @@ class NotificationSettingsIn(BaseModel):
     line_channel_token: str | None = None
     line_target_id: str | None = None
 
+
+class LineConnectIn(BaseModel):
+    line_oa_name: str | None = None
+    channel_id: str | None = None
+    secret_key: str | None = None
+    channel_token: str | None = None
+    target_id: str | None = None
+
+

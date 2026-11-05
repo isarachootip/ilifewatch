@@ -15,6 +15,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
+from . import line_oa
 from .db import init_db
 from .routers import auth_ingest, staff_ops, staff_patients
 
@@ -42,6 +43,7 @@ app.add_middleware(
 app.include_router(auth_ingest.router)
 app.include_router(staff_patients.router)
 app.include_router(staff_ops.router)
+app.include_router(line_oa.router)
 
 _STATIC = Path(__file__).parent / "static"
 app.mount("/static", StaticFiles(directory=_STATIC), name="static")
