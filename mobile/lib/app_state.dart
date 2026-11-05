@@ -15,7 +15,8 @@ class AppState extends ChangeNotifier {
   String server = defaultServer;
   AppLanguage language = AppLanguage.th;
   String? token, enrollmentCode, patientName, orgName, orgType, pairedMac, pairedName;
-  bool sessionExpired = false;
+  bool sessionExpired = false, bgServiceEnabled = true, bpPrivateMode = false;
+  int bpCalSystolic = 120, bpCalDiastolic = 80;
   UserProfile? profile;
   DateTime? lastSync;
 
@@ -45,6 +46,10 @@ class AppState extends ChangeNotifier {
     token = p.getString('token');
     enrollmentCode = p.getString('enrollmentCode');
     sessionExpired = p.getBool('sessionExpired') ?? false;
+    bgServiceEnabled = p.getBool('bgServiceEnabled') ?? true;
+    bpPrivateMode = p.getBool('bpPrivateMode') ?? false;
+    bpCalSystolic = p.getInt('bpCalSystolic') ?? 120;
+    bpCalDiastolic = p.getInt('bpCalDiastolic') ?? 80;
     patientName = p.getString('patientName');
     orgName = p.getString('orgName');
     orgType = p.getString('orgType');
@@ -99,38 +104,45 @@ class AppState extends ChangeNotifier {
 
   Future<void> markSessionExpired() async {
     if (token == null && sessionExpired) return;
-    token = null;
-    sessionExpired = true;
-    api = ApiClient(baseUrl: server);
+    token = null; sessionExpired = true; api = ApiClient(baseUrl: server);
     notifyListeners();
     final p = await SharedPreferences.getInstance();
-    await p.remove('token');
-    await p.setBool('sessionExpired', true);
+    await p.remove('token'); await p.setBool('sessionExpired', true);
   }
 
   Future<void> setLanguage(AppLanguage lang) async {
     if (language == lang) return;
-    language = lang;
-    notifyListeners();
+    language = lang; notifyListeners();
     final p = await SharedPreferences.getInstance();
     await p.setString('language', lang.code);
   }
 
-  Future<void> setPaired(String mac, String name) async {
-    pairedMac = mac;
-    pairedName = name;
+  Future<void> setBgServiceEnabled(bool enabled) async {
+    bgServiceEnabled = enabled; notifyListeners();
     final p = await SharedPreferences.getInstance();
-    await p.setString('pairedMac', mac);
-    await p.setString('pairedName', name);
+    await p.setBool('bgServiceEnabled', enabled);
+  }
+
+  Future<void> setBpCalibration({required bool privateMode, required int systolic, required int diastolic}) async {
+    bpPrivateMode = privateMode; bpCalSystolic = systolic; bpCalDiastolic = diastolic;
+    notifyListeners();
+    final p = await SharedPreferences.getInstance();
+    await p.setBool('bpPrivateMode', privateMode);
+    await p.setInt('bpCalSystolic', systolic);
+    await p.setInt('bpCalDiastolic', diastolic);
+  }
+
+  Future<void> setPaired(String mac, String name) async {
+    pairedMac = mac; pairedName = name;
+    final p = await SharedPreferences.getInstance();
+    await p.setString('pairedMac', mac); await p.setString('pairedName', name);
     notifyListeners();
   }
 
   Future<void> unpair() async {
-    pairedMac = null;
-    pairedName = null;
+    pairedMac = pairedName = null;
     final p = await SharedPreferences.getInstance();
-    await p.remove('pairedMac');
-    await p.remove('pairedName');
+    await p.remove('pairedMac'); await p.remove('pairedName');
     notifyListeners();
   }
 
@@ -169,26 +181,19 @@ class AppState extends ChangeNotifier {
   void resetStepsForSync() => todaySteps = 0;
   void setTodaySteps(int steps) { todaySteps = steps; notifyListeners(); }
   void setSleep({required int deep, required int light}) {
-    latestDeepMinutes = deep;
-    latestLightMinutes = light;
-    latestSleepMinutes = deep + light;
+    latestDeepMinutes = deep; latestLightMinutes = light; latestSleepMinutes = deep + light;
     notifyListeners();
   }
   void setBattery(Map<String, dynamic> b) { battery = b; notifyListeners(); }
   void addAlerts(List<Map<String, dynamic>> a) {
     if (a.isEmpty) return;
-    alerts.insertAll(0, a);
-    notifyListeners();
+    alerts.insertAll(0, a); notifyListeners();
   }
 
   Future<void> logout() async {
     final p = await SharedPreferences.getInstance();
     await p.clear();
-    token = enrollmentCode = pairedMac = null;
-    sessionExpired = false;
-    profile = null;
-    recentBp.clear();
-    alerts.clear();
-    notifyListeners();
+    token = enrollmentCode = pairedMac = null; sessionExpired = false; profile = null;
+    recentBp.clear(); alerts.clear(); notifyListeners();
   }
 }

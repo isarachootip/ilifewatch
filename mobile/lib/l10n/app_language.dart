@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
 
-/// ภาษาที่รองรับในระบบ iLife Watch (5 ภาษา)
+/// ภาษาที่รองรับในระบบ iLife Watch (8 ภาษา)
 enum AppLanguage {
   th(code: 'th', nativeName: 'ไทย', englishName: 'Thai', badge: 'TH', direction: TextDirection.ltr),
   en(code: 'en', nativeName: 'English', englishName: 'English', badge: 'EN', direction: TextDirection.ltr),
   zh(code: 'zh', nativeName: '简体中文', englishName: 'Chinese', badge: '中文', direction: TextDirection.ltr),
   ar(code: 'ar', nativeName: 'العربية', englishName: 'Arabic', badge: 'عربي', direction: TextDirection.rtl),
-  de(code: 'de', nativeName: 'Deutsch', englishName: 'German', badge: 'DE', direction: TextDirection.ltr);
+  de(code: 'de', nativeName: 'Deutsch', englishName: 'German', badge: 'DE', direction: TextDirection.ltr),
+  jawi(code: 'jawi', nativeName: 'بهاس جاوي (ยาวี)', englishName: 'Southern Jawi', badge: 'جاوي', direction: TextDirection.rtl),
+  ru(code: 'ru', nativeName: 'Русский', englishName: 'Russian', badge: 'RU', direction: TextDirection.ltr),
+  he(code: 'he', nativeName: 'עברית', englishName: 'Hebrew (Israel)', badge: 'עב', direction: TextDirection.rtl);
 
   const AppLanguage({
     required this.code,

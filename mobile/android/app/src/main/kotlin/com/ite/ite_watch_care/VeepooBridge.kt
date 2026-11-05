@@ -21,7 +21,7 @@ import java.util.Calendar
  *   connectDevice -> (notifyState == REQUEST_SUCCESS) -> confirmDevicePwd -> syncPersonInfo
  * นาฬิกาไม่รองรับคำสั่งพร้อมกัน ฝั่ง Dart (WatchService) มีคิวคุมให้ทำทีละคำสั่ง
  */
-class VeepooBridge(context: Context, messenger: BinaryMessenger) :
+class VeepooBridge(private val appContext: Context, messenger: BinaryMessenger) :
     MethodChannel.MethodCallHandler, EventChannel.StreamHandler {
 
     companion object {
@@ -30,7 +30,7 @@ class VeepooBridge(context: Context, messenger: BinaryMessenger) :
     }
 
     internal val vp: VPOperateManager = VPOperateManager.getInstance().also {
-        it.init(context.applicationContext)
+        it.init(appContext.applicationContext)
         it.setDeviceShowConfirm(true)
     }
     internal val main = Handler(Looper.getMainLooper())
@@ -78,100 +78,47 @@ class VeepooBridge(context: Context, messenger: BinaryMessenger) :
     override fun onMethodCall(call: MethodCall, result: MethodChannel.Result) {
         try {
             when (call.method) {
-                "startScan" -> {
-                    connectionHandler.startScan()
-                    result.success(null)
-                }
-                "stopScan" -> {
-                    vp.stopScanDevice()
-                    result.success(null)
-                }
+                "startScan" -> { connectionHandler.startScan(); result.success(null) }
+                "stopScan" -> { vp.stopScanDevice(); result.success(null) }
                 "connect" -> {
                     password = call.argument<String>("password") ?: "0000"
                     val name = call.argument<String>("name")?.takeIf { it.isNotBlank() } ?: "F520Pro"
                     connectionHandler.connect(call.argument<String>("mac")!!, name)
                     result.success(null)
                 }
-                "disconnect" -> {
-                    vp.disconnectWatch(writeResp)
-                    result.success(null)
-                }
+                "disconnect" -> { vp.disconnectWatch(writeResp); result.success(null) }
                 "syncProfile" -> connectionHandler.syncProfile(call, result)
-                "readBattery" -> {
-                    connectionHandler.readBattery()
+                "readBattery" -> { connectionHandler.readBattery(); result.success(null) }
+                "startBp" -> { measureHandler.startBp(call.argument<String>("method") ?: "cuff"); result.success(null) }
+                "stopBp" -> { measureHandler.stopBp(call.argument<String>("method") ?: "cuff"); result.success(null) }
+                "setBpCalibration" -> {
+                    val priv = call.argument<Boolean>("privateMode") == true
+                    val sys = call.argument<Int>("systolic") ?: 120
+                    val dia = call.argument<Int>("diastolic") ?: 80
+                    measureHandler.setBpCalibration(priv, sys, dia)
                     result.success(null)
                 }
-                "startBp" -> {
-                    measureHandler.startBp(call.argument<String>("method") ?: "cuff")
-                    result.success(null)
-                }
-                "stopBp" -> {
-                    measureHandler.stopBp(call.argument<String>("method") ?: "cuff")
-                    result.success(null)
-                }
-                "startEcg" -> {
-                    measureHandler.startEcg()
-                    result.success(null)
-                }
-                "stopEcg" -> {
-                    measureHandler.stopEcg()
-                    result.success(null)
-                }
-                "startSpo2" -> {
-                    liveVitalHandler.startSpo2()
-                    result.success(null)
-                }
-                "stopSpo2" -> {
-                    liveVitalHandler.stopSpo2()
-                    result.success(null)
-                }
-                "startTemp" -> {
-                    liveVitalHandler.startTemp()
-                    result.success(null)
-                }
-                "stopTemp" -> {
-                    liveVitalHandler.stopTemp()
-                    result.success(null)
-                }
-                "startHeart" -> {
-                    liveVitalHandler.startHeart()
-                    result.success(null)
-                }
-                "stopHeart" -> {
-                    liveVitalHandler.stopHeart()
-                    result.success(null)
-                }
-                "readSportStep" -> {
-                    liveVitalHandler.readSportStep()
-                    result.success(null)
-                }
-                "startSportMode" -> {
-                    liveVitalHandler.startSportMode(call.argument<String>("mode") ?: "walk")
-                    result.success(null)
-                }
-                "stopSportMode" -> {
-                    liveVitalHandler.stopSportMode()
-                    result.success(null)
-                }
-                "syncHistory" -> {
-                    syncHandler.syncHistory()
-                    result.success(null)
-                }
+                "startEcg" -> { measureHandler.startEcg(); result.success(null) }
+                "stopEcg" -> { measureHandler.stopEcg(); result.success(null) }
+                "startSpo2" -> { liveVitalHandler.startSpo2(); result.success(null) }
+                "stopSpo2" -> { liveVitalHandler.stopSpo2(); result.success(null) }
+                "startTemp" -> { liveVitalHandler.startTemp(); result.success(null) }
+                "stopTemp" -> { liveVitalHandler.stopTemp(); result.success(null) }
+                "startHeart" -> { liveVitalHandler.startHeart(); result.success(null) }
+                "stopHeart" -> { liveVitalHandler.stopHeart(); result.success(null) }
+                "readSportStep" -> { liveVitalHandler.readSportStep(); result.success(null) }
+                "startSportMode" -> { liveVitalHandler.startSportMode(call.argument<String>("mode") ?: "walk"); result.success(null) }
+                "stopSportMode" -> { liveVitalHandler.stopSportMode(); result.success(null) }
+                "syncHistory" -> { syncHandler.syncHistory(); result.success(null) }
                 "readWatchMeasurements" -> {
-                    val since = (call.argument<Number>("since") ?: 0).toLong()
-                    manualReader.readManual(since)
+                    manualReader.readManual((call.argument<Number>("since") ?: 0).toLong())
                     result.success(null)
                 }
-                "startMiniCheckup" -> {
-                    miniCheckupHandler.startMiniCheckup()
-                    result.success(null)
-                }
-                "stopMiniCheckup" -> {
-                    miniCheckupHandler.stopMiniCheckup()
-                    result.success(null)
-                }
-                "enableAutoDetect" -> {
-                    miniCheckupHandler.enableAutoDetect()
+                "startMiniCheckup" -> { miniCheckupHandler.startMiniCheckup(); result.success(null) }
+                "stopMiniCheckup" -> { miniCheckupHandler.stopMiniCheckup(); result.success(null) }
+                "enableAutoDetect" -> { miniCheckupHandler.enableAutoDetect(); result.success(null) }
+                "setForegroundService" -> {
+                    WatchForegroundService.setRunning(appContext, call.argument<Boolean>("enabled") == true)
                     result.success(null)
                 }
                 else -> result.notImplemented()

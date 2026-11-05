@@ -9,6 +9,7 @@ import '../watch/watch_service.dart';
 import 'bp_screen.dart';
 import 'ecg_screen.dart';
 import 'pair_screen.dart';
+import 'widgets/bp_calibration_sheet.dart';
 
 /// แท็บที่ 4: อุปกรณ์ (ดีไซน์ตามหน้า "อุปกรณ์" ของ Huawei Health ในวิดีโอ)
 class DevicesTab extends StatelessWidget {
@@ -107,6 +108,11 @@ class DevicesTab extends StatelessWidget {
                       icon: const Icon(Icons.refresh, color: ILifeTheme.teal),
                       label: Text(tr('reconnect'), style: const TextStyle(color: ILifeTheme.teal, fontWeight: FontWeight.w700)),
                     ),
+                  TextButton.icon(
+                    onPressed: () => showBpCalibrationSheet(context),
+                    icon: const Icon(Icons.tune, color: ILifeTheme.navy),
+                    label: const Text('BP Calibration', style: TextStyle(color: ILifeTheme.navy, fontWeight: FontWeight.w700)),
+                  ),
                 ]),
               ]),
             ),

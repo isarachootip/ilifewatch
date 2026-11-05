@@ -99,4 +99,23 @@ extension WatchLiveExtension on WatchService {
   /// สั่งเปิดโหมดวัดค่าอัตโนมัติ 24 ชม. บนนาฬิกา (Auto HR, Auto BP, Auto Temp, Auto HRV, Auto Stress)
   Future<void> enableWatchAutoDetect() =>
       runQueued(() => invokeNative('enableAutoDetect'));
+
+  /// ตั้งค่าความดันโลหิตอ้างอิงเฉพาะบุคคล (Private BP Calibration) หรือกลับเป็นโหมดมาตรฐาน (Public Mode)
+  Future<void> configureBpCalibration({
+    required bool privateMode,
+    required int systolic,
+    required int diastolic,
+  }) =>
+      runQueued(() => invokeNative('setBpCalibration', {
+            'privateMode': privateMode,
+            'systolic': systolic,
+            'diastolic': diastolic,
+          }).timeout(const Duration(seconds: 10)));
+
+  /// เปิด/ปิด Android Foreground Service สำหรับรักษาการเชื่อมต่อและซิงค์ข้อมูล 24 ชม.
+  Future<void> setForegroundGuard(bool enabled) async {
+    try {
+      await invokeNative('setForegroundService', {'enabled': enabled});
+    } catch (_) {}
+  }
 }

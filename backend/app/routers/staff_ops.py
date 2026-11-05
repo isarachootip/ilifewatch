@@ -8,10 +8,11 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from .. import alerts as alert_rules
 from ..db import get_db
 from ..deps import MIN_GROUP_SIZE, current_staff, iso, patient_for_staff, require_individual_access, utc
-from ..models import Alert, AuditLog, BpReading, Device, Patient, StaffUser, VitalSample
-from ..schemas import AckIn
+from ..models import Alert, AuditLog, BpReading, Device, Organization, Patient, StaffUser, VitalSample
+from ..schemas import AckIn, NotificationSettingsIn
 
 router = APIRouter()
 
@@ -115,3 +116,54 @@ def org_aggregate(s: StaffUser = Depends(current_staff), db: Session = Depends(g
         "avg_daily_steps_7d": avg_steps,
         "suppressed": False,
     }
+
+
+@router.get("/v1/staff/org/notifications")
+def get_notification_settings(s: StaffUser = Depends(current_staff), db: Session = Depends(get_db)):
+    if s.role != "admin":
+        raise HTTPException(403, "เฉพาะผู้ดูแลระบบเท่านั้น")
+    org = db.get(Organization, s.org_id)
+    cfg = org.alert_thresholds or {}
+    token = cfg.get("line_channel_token") or ""
+    return {
+        "webhook_url": org.alert_webhook_url or "",
+        "line_target_id": cfg.get("line_target_id") or "",
+        "has_line_token": bool(token),
+        "line_token_masked": (token[:6] + "..." + token[-4:]) if len(token) > 12 else ("***" if token else ""),
+    }
+
+
+@router.put("/v1/staff/org/notifications")
+def update_notification_settings(
+    body: NotificationSettingsIn, s: StaffUser = Depends(current_staff), db: Session = Depends(get_db)
+):
+    if s.role != "admin":
+        raise HTTPException(403, "เฉพาะผู้ดูแลระบบเท่านั้น")
+    org = db.get(Organization, s.org_id)
+    org.alert_webhook_url = (body.webhook_url or "").strip() or None
+    cfg = dict(org.alert_thresholds or {})
+    if body.line_channel_token is not None:
+        tok = body.line_channel_token.strip()
+        if tok:
+            cfg["line_channel_token"] = tok
+        else:
+            cfg.pop("line_channel_token", None)
+    if body.line_target_id is not None:
+        tid = body.line_target_id.strip()
+        if tid:
+            cfg["line_target_id"] = tid
+        else:
+            cfg.pop("line_target_id", None)
+    org.alert_thresholds = cfg
+    db.add(AuditLog(actor=f"staff:{s.id}", action="update_notifications"))
+    db.commit()
+    return {"ok": True}
+
+
+@router.post("/v1/staff/org/notifications/test")
+def test_notification_settings(s: StaffUser = Depends(current_staff), db: Session = Depends(get_db)):
+    if s.role != "admin":
+        raise HTTPException(403, "เฉพาะผู้ดูแลระบบเท่านั้น")
+    org = db.get(Organization, s.org_id)
+    return alert_rules.send_test_notification(org)
+

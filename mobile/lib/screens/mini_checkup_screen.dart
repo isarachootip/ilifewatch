@@ -20,6 +20,9 @@ class MiniCheckupScreen extends StatefulWidget {
         AppLanguage.zh => '一键60秒微体检',
         AppLanguage.ar => 'الفحص الصحي الشامل بنقرة واحدة (60 ثانية)',
         AppLanguage.de => '60-Sek. Schnell-Checkup mit einem Tippen',
+        AppLanguage.jawi => 'فمريقساءن كصيحتن فنتس 60 ساعت',
+        AppLanguage.ru => 'Экспресс-осмотр за 60 секунд',
+        AppLanguage.he => 'בדיקת בריאות מהירה ב-60 שניות',
       };
 
   static String subtitleFor(AppLanguage l) => switch (l) {
@@ -28,6 +31,9 @@ class MiniCheckupScreen extends StatefulWidget {
         AppLanguage.zh => '同时测量血压 · 心率 · 血氧 · 体温 · 压力 · HRV',
         AppLanguage.ar => 'قياس ضغط الدم · النبض · الأكسجين · الحرارة · التوتر · HRV معاً',
         AppLanguage.de => 'Misst Blutdruck · Puls · SpO2 · Temperatur · Stress · HRV gleichzeitig',
+        AppLanguage.jawi => 'اوكور تكنن · نادي · SpO2 · سوهو · ستريس · HRV سرنتق',
+        AppLanguage.ru => 'АД · Пульс · SpO2 · Температура · Стресс · ВСР одновременно',
+        AppLanguage.he => 'מודד לחץ דם · דופק · SpO2 · חום · מתח · HRV במקביל',
       };
 
   @override
@@ -48,6 +54,9 @@ class _MiniCheckupScreenState extends State<MiniCheckupScreen> {
         AppLanguage.zh => '开始一键微体检',
         AppLanguage.ar => 'بدء الفحص الشامل',
         AppLanguage.de => 'Schnell-Checkup starten',
+        AppLanguage.jawi => 'مولا فمريقساءن فنتس',
+        AppLanguage.ru => 'Начать экспресс-осмотр',
+        AppLanguage.he => 'התחל בדיקה מהירה',
       };
 
   static String _stopBtn(AppLanguage l) => switch (l) {
@@ -56,6 +65,9 @@ class _MiniCheckupScreenState extends State<MiniCheckupScreen> {
         AppLanguage.zh => '停止测量',
         AppLanguage.ar => 'إلغاء الفحص',
         AppLanguage.de => 'Abbrechen',
+        AppLanguage.jawi => 'بتل فمريقساءن',
+        AppLanguage.ru => 'Отменить',
+        AppLanguage.he => 'בטל בדיקה',
       };
 
   @override
@@ -154,10 +166,7 @@ class _MiniCheckupScreenState extends State<MiniCheckupScreen> {
               ],
             ),
           ),
-          if (_error != null) ...[
-            const SizedBox(height: 12),
-            Text(_error!, style: const TextStyle(color: Colors.redAccent, fontWeight: FontWeight.w600)),
-          ],
+          if (_error != null) Padding(padding: const EdgeInsets.only(top: 12), child: Text(_error!, style: const TextStyle(color: Colors.redAccent, fontWeight: FontWeight.w600))),
           const SizedBox(height: 18),
           GridView.count(
             crossAxisCount: 2, shrinkWrap: true, physics: const NeverScrollableScrollPhysics(),
@@ -179,13 +188,9 @@ class _MiniCheckupScreenState extends State<MiniCheckupScreen> {
   Widget _tile(String label, String value, IconData icon, Color color) => Container(
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18), border: Border.all(color: const Color(0xFFE5E7EB))),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Row(children: [Icon(icon, size: 18, color: color), const SizedBox(width: 6), Expanded(child: Text(label, style: const TextStyle(fontSize: 12, color: ILifeTheme.textSecondary)))]),
-            Text(value, style: TextStyle(fontSize: 21, fontWeight: FontWeight.w900, color: color)),
-          ],
-        ),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+          Row(children: [Icon(icon, size: 18, color: color), const SizedBox(width: 6), Expanded(child: Text(label, style: const TextStyle(fontSize: 12, color: ILifeTheme.textSecondary)))]),
+          Text(value, style: TextStyle(fontSize: 21, fontWeight: FontWeight.w900, color: color)),
+        ]),
       );
 }

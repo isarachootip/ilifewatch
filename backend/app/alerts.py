@@ -88,20 +88,70 @@ def evaluate(db: Session, p: Patient, bp: list, vitals: list) -> list[Alert]:
     return out
 
 
-def notify(p: Patient, alerts: list[Alert]) -> None:
-    """ส่งต่อแจ้งเตือนไปยัง webhook ของหน่วยงาน (เช่น LINE OA, ระบบ nurse call)
+def _send_line_push(token: str, target_id: str, text: str) -> bool:
+    if not token or not target_id:
+        return False
+    payload = json.dumps({"to": target_id, "messages": [{"type": "text", "text": text}]}).encode()
+    req = urllib.request.Request(
+        "https://api.line.me/v2/bot/message/push",
+        data=payload,
+        headers={"Content-Type": "application/json", "Authorization": f"Bearer {token}"},
+    )
+    urllib.request.urlopen(req, timeout=5).close()
+    return True
 
-    ส่งเฉพาะข้อความที่จำเป็น ไม่ส่งข้อมูลสุขภาพดิบ เพื่อลดความเสี่ยงด้าน PDPA
-    ระบบจริงควรส่งผ่านคิว (เช่น Celery/Cloud Tasks) ไม่ส่งตรงใน request
-    """
-    url = p.org.alert_webhook_url
-    if not url or not alerts:
+
+def _send_webhook(url: str, payload_dict: dict) -> bool:
+    if not url:
+        return False
+    body = json.dumps(payload_dict).encode()
+    req = urllib.request.Request(url, data=body, headers={"Content-Type": "application/json"})
+    urllib.request.urlopen(req, timeout=5).close()
+    return True
+
+
+def notify(p: Patient, alerts: list[Alert]) -> None:
+    """ส่งต่อแจ้งเตือนไปยัง Webhook และ LINE Messaging API ของหน่วยงาน"""
+    if not alerts:
+        return
+    org = p.org
+    url = org.alert_webhook_url
+    cfg = org.alert_thresholds or {}
+    line_token = cfg.get("line_channel_token")
+    line_target = cfg.get("line_target_id")
+    if not url and not (line_token and line_target):
         return
     for a in alerts:
-        body = json.dumps({"patient_id": p.id, "patient_name": p.display_name, "level": a.level,
-                           "message": a.message}).encode()
+        if url:
+            try:
+                _send_webhook(url, {"patient_id": p.id, "patient_name": p.display_name, "level": a.level, "message": a.message})
+            except Exception as e:
+                log.warning("webhook failed: %s", e)
+        if line_token and line_target:
+            try:
+                prefix = "🚨 [ฉุกเฉิน]" if a.level == "critical" else "⚠️ [เฝ้าระวัง]"
+                _send_line_push(line_token, line_target, f"{prefix} {p.display_name}: {a.message}")
+            except Exception as e:
+                log.warning("line push failed: %s", e)
+
+
+def send_test_notification(org) -> dict:
+    """ส่งข้อความทดสอบไปยัง Webhook และ LINE OA ที่ตั้งค่าไว้"""
+    url = org.alert_webhook_url
+    cfg = org.alert_thresholds or {}
+    line_token = cfg.get("line_channel_token")
+    line_target = cfg.get("line_target_id")
+    results = {"webhook": "skipped", "line": "skipped"}
+    if url:
         try:
-            req = urllib.request.Request(url, data=body, headers={"Content-Type": "application/json"})
-            urllib.request.urlopen(req, timeout=5).close()
-        except Exception as e:  # ไม่ให้การแจ้งเตือนล้มเหลวทำให้การบันทึกข้อมูลล้มเหลว
-            log.warning("webhook failed: %s", e)
+            _send_webhook(url, {"event": "test", "org": org.name, "message": "ทดสอบระบบแจ้งเตือน iLife Watch Care"})
+            results["webhook"] = "sent"
+        except Exception as e:
+            results["webhook"] = f"error: {e}"
+    if line_token and line_target:
+        try:
+            _send_line_push(line_token, line_target, f"✅ [{org.name}] ทดสอบการเชื่อมต่อแจ้งเตือน iLife Watch Care สำเร็จ")
+            results["line"] = "sent"
+        except Exception as e:
+            results["line"] = f"error: {e}"
+    return results

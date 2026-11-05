@@ -4,20 +4,20 @@ import '../app_state.dart';
 import '../l10n/app_strings.dart';
 import '../l10n/language_picker.dart';
 import '../theme/ilife_theme.dart';
+import '../watch/watch_live_extension.dart';
 import '../watch/watch_service.dart';
 import 'home_widgets.dart';
 import 'setup_screen.dart';
+import 'widgets/bp_calibration_sheet.dart';
 
 /// แท็บที่ 5: ฉัน (ดีไซน์ตามหน้า "ฉัน" ของ Huawei Health ในวิดีโอ)
 class ProfileTab extends StatelessWidget {
   const ProfileTab({super.key, required this.onSync});
-
   final Future<void> Function() onSync;
 
   @override
   Widget build(BuildContext context) {
     final s = AppState.instance;
-
     return Scaffold(
       appBar: AppBar(
         title: Text(tr('tab_profile')),
@@ -35,11 +35,7 @@ class ProfileTab extends StatelessWidget {
           Card(
             child: ListTile(
               contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-              leading: const CircleAvatar(
-                radius: 28,
-                backgroundColor: ILifeTheme.magentaLight,
-                child: Icon(Icons.person, size: 32, color: ILifeTheme.magenta),
-              ),
+              leading: const CircleAvatar(radius: 28, backgroundColor: ILifeTheme.magentaLight, child: Icon(Icons.person, size: 32, color: ILifeTheme.magenta)),
               title: Text(
                 s.isLoggedIn ? (s.patientName ?? tr('user_default_name')) : tr('not_linked_org'),
                 style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: ILifeTheme.navy),
@@ -61,57 +57,44 @@ class ProfileTab extends StatelessWidget {
               gradient: const LinearGradient(colors: [Color(0xFFFFF8E1), Color(0xFFFFECB3)]),
               borderRadius: BorderRadius.circular(18),
             ),
-            child: Row(
-              children: [
-                const Icon(Icons.verified, color: Color(0xFFF57F17)),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text('iLife Care+ Health Cloud', style: TextStyle(fontWeight: FontWeight.w800, color: ILifeTheme.navy)),
-                      Text('${tr('server_label')}: ${s.server}', style: const TextStyle(fontSize: 12, color: ILifeTheme.textSecondary)),
-                    ],
-                  ),
-                ),
-                const Icon(Icons.chevron_right, color: ILifeTheme.navy),
-              ],
-            ),
+            child: Row(children: [
+              const Icon(Icons.verified, color: Color(0xFFF57F17)),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  const Text('iLife Care+ Health Cloud', style: TextStyle(fontWeight: FontWeight.w800, color: ILifeTheme.navy)),
+                  Text('${tr('server_label')}: ${s.server}', style: const TextStyle(fontSize: 12, color: ILifeTheme.textSecondary)),
+                ]),
+              ),
+              const Icon(Icons.chevron_right, color: ILifeTheme.navy),
+            ]),
           ),
           const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                child: _QuickProfileCard(
-                  icon: Icons.local_hospital,
-                  color: ILifeTheme.teal,
-                  title: tr('care_org'),
-                  subtitle: s.orgName ?? tr('link_with_code'),
-                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SetupScreen())),
-                ),
+          Row(children: [
+            Expanded(
+              child: _QuickProfileCard(
+                icon: Icons.local_hospital, color: ILifeTheme.teal, title: tr('care_org'),
+                subtitle: s.orgName ?? tr('link_with_code'),
+                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SetupScreen())),
               ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: _QuickProfileCard(
-                  icon: Icons.favorite,
-                  color: ILifeTheme.magenta,
-                  title: tr('latest_bp'),
-                  subtitle: s.latestBp != null ? '${s.latestBp!.systolic}/${s.latestBp!.diastolic}' : tr('no_history'),
-                  onTap: onSync,
-                ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: _QuickProfileCard(
+                icon: Icons.favorite, color: ILifeTheme.magenta, title: tr('latest_bp'),
+                subtitle: s.latestBp != null ? '${s.latestBp!.systolic}/${s.latestBp!.diastolic}' : tr('no_history'),
+                onTap: onSync,
               ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: _QuickProfileCard(
-                  icon: Icons.summarize,
-                  color: ILifeTheme.purple,
-                  title: tr('last_sync'),
-                  subtitle: s.lastSync != null ? formatShortDateTime(s.lastSync!) : tr('tap_to_sync'),
-                  onTap: onSync,
-                ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: _QuickProfileCard(
+                icon: Icons.summarize, color: ILifeTheme.purple, title: tr('last_sync'),
+                subtitle: s.lastSync != null ? formatShortDateTime(s.lastSync!) : tr('tap_to_sync'),
+                onTap: onSync,
               ),
-            ],
-          ),
+            ),
+          ]),
           const SizedBox(height: 16),
           Card(
             child: Column(
@@ -145,6 +128,21 @@ class ProfileTab extends StatelessWidget {
                         ? '${tr('height_cm')} ${s.profile!.heightCm} cm · ${tr('weight_kg')} ${s.profile!.weightKg} kg · ${tr('birth_year')} ${s.profile!.birthYear}'
                         : tr('personal_info_default'),
                   ),
+                  trailing: const Icon(Icons.tune, color: ILifeTheme.teal),
+                  onTap: () => showBpCalibrationSheet(context),
+                ),
+                const Divider(height: 1),
+                SwitchListTile(
+                  secondary: const Icon(Icons.shield_moon_outlined, color: ILifeTheme.teal),
+                  title: const Text('ดูแลสุขภาพต่อเนื่อง 24 ชม. (Foreground Service)'),
+                  subtitle: Text(s.bpPrivateMode
+                      ? 'BP Private Mode: ${s.bpCalSystolic}/${s.bpCalDiastolic} mmHg'
+                      : 'รักษาการเชื่อมต่อนาฬิกาขณะปิดหน้าจอ'),
+                  value: s.bgServiceEnabled,
+                  onChanged: (v) async {
+                    await s.setBgServiceEnabled(v);
+                    await WatchService.instance.setForegroundGuard(v && s.pairedMac != null);
+                  },
                 ),
                 if (s.isLoggedIn) ...[
                   const Divider(height: 1),
@@ -189,7 +187,6 @@ class _QuickProfileCard extends StatelessWidget {
             ),
             const SizedBox(height: 10),
             Text(title, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 12, color: ILifeTheme.navy)),
-            const SizedBox(height: 2),
             Text(subtitle, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 11, color: ILifeTheme.textSecondary)),
           ]),
         ),

@@ -3,10 +3,13 @@ import 'app_language.dart';
 import 'strings_ar.dart';
 import 'strings_de.dart';
 import 'strings_en.dart';
+import 'strings_he.dart';
+import 'strings_jawi.dart';
+import 'strings_ru.dart';
 import 'strings_th.dart';
 import 'strings_zh.dart';
 
-/// ตัวจัดการคำแปลภาษาปัจจุบันของระบบ (5 ภาษา: TH, EN, ZH, AR, DE)
+/// ตัวจัดการคำแปลภาษาปัจจุบันของระบบ (8 ภาษา: TH, EN, ZH, AR, DE, JAWI, RU, HE)
 String tr(String key, [AppLanguage? lang]) {
   final current = lang ?? AppState.instance.language;
   final map = switch (current) {
@@ -15,6 +18,9 @@ String tr(String key, [AppLanguage? lang]) {
     AppLanguage.zh => stringsZh,
     AppLanguage.ar => stringsAr,
     AppLanguage.de => stringsDe,
+    AppLanguage.jawi => stringsJawi,
+    AppLanguage.ru => stringsRu,
+    AppLanguage.he => stringsHe,
   };
   return map[key] ?? stringsTh[key] ?? key;
 }
@@ -32,6 +38,9 @@ String translateAlertMessage(String raw, [AppLanguage? lang]) {
       AppLanguage.zh => '血压极高：$v',
       AppLanguage.ar => 'ضغط دم مرتفع جداً: $v',
       AppLanguage.de => 'Kritisch hoher Blutdruck: $v',
+      AppLanguage.jawi => 'تكنن داره ساغت تيغݢي: $v',
+      AppLanguage.ru => 'Критически высокое АД: $v',
+      AppLanguage.he => 'לחץ דם גבוה מאוד: $v',
       AppLanguage.th => raw,
     };
   }
@@ -44,6 +53,9 @@ String translateAlertMessage(String raw, [AppLanguage? lang]) {
       AppLanguage.zh => '血压偏高：$v',
       AppLanguage.ar => 'ضغط دم مرتفع: $v',
       AppLanguage.de => 'Hoher Blutdruck: $v',
+      AppLanguage.jawi => 'تكنن داره تيغݢي: $v',
+      AppLanguage.ru => 'Высокое АД: $v',
+      AppLanguage.he => 'לחץ דם גבוה: $v',
       AppLanguage.th => raw,
     };
   }
@@ -56,6 +68,9 @@ String translateAlertMessage(String raw, [AppLanguage? lang]) {
       AppLanguage.zh => '血压偏低：$v',
       AppLanguage.ar => 'ضغط دم منخفض: $v',
       AppLanguage.de => 'Niedriger Blutdruck: $v',
+      AppLanguage.jawi => 'تكنن داره رنده: $v',
+      AppLanguage.ru => 'Низкое АД: $v',
+      AppLanguage.he => 'לחץ דם נמוך: $v',
       AppLanguage.th => raw,
     };
   }
@@ -66,6 +81,9 @@ String translateAlertMessage(String raw, [AppLanguage? lang]) {
       AppLanguage.zh => '血氧饱和度偏低：$raw',
       AppLanguage.ar => 'انخفاض أكسجين الدم (SpO2): $raw',
       AppLanguage.de => 'Niedriger Blutsauerstoff (SpO2): $raw',
+      AppLanguage.jawi => 'اوكسيݢن داره رنده (SpO2): $raw',
+      AppLanguage.ru => 'Низкий уровень кислорода (SpO2): $raw',
+      AppLanguage.he => 'רמת חמצן נמוכה בדם (SpO2): $raw',
       AppLanguage.th => raw,
     };
   }
@@ -76,6 +94,9 @@ String translateAlertMessage(String raw, [AppLanguage? lang]) {
       AppLanguage.zh => '心率异常提醒：$raw',
       AppLanguage.ar => 'تنبيه معدل نبض غير طبيعي: $raw',
       AppLanguage.de => 'Warnung Herzfrequenz: $raw',
+      AppLanguage.jawi => 'امرن نادي تيدق نورمل: $raw',
+      AppLanguage.ru => 'Предупреждение о пульсе: $raw',
+      AppLanguage.he => 'התראת דופק חריג: $raw',
       AppLanguage.th => raw,
     };
   }

@@ -1,9 +1,11 @@
 package com.ite.ite_watch_care
 
 import com.veepoo.protocol.listener.data.IBPDetectDataListener
+import com.veepoo.protocol.listener.data.IBPSettingDataListener
 import com.veepoo.protocol.listener.data.ICuffBPDetectDataListener
 import com.veepoo.protocol.listener.data.IECGDetectListener
 import com.veepoo.protocol.model.datas.BpData
+import com.veepoo.protocol.model.datas.BpSettingData
 import com.veepoo.protocol.model.datas.EcgDetectInfo
 import com.veepoo.protocol.model.datas.EcgDetectResult
 import com.veepoo.protocol.model.datas.EcgDetectState
@@ -12,12 +14,29 @@ import com.veepoo.protocol.model.datas.VPCuffBPTestData
 import com.veepoo.protocol.model.enums.EBPDetectModel
 import com.veepoo.protocol.model.enums.EBPDetectStatus
 import com.veepoo.protocol.model.enums.EVPCuffBPTestStatus
+import com.veepoo.protocol.model.settings.BpSetting
 
 internal class VeepooMeasureHandler(private val b: VeepooBridge) {
 
     private var ppgBpResultSent = false
+    private var bpModel: EBPDetectModel = EBPDetectModel.DETECT_MODEL_PUBLIC
     private val ecgWave = ArrayList<Int>()
     private var ecgSampleRate = 0
+
+    fun setBpCalibration(openPrivate: Boolean, systolic: Int, diastolic: Int) {
+        val setting = BpSetting(openPrivate, systolic.coerceIn(60, 300), diastolic.coerceIn(20, 200))
+        bpModel = if (openPrivate) EBPDetectModel.DETECT_MODEL_PRIVATE else EBPDetectModel.DETECT_MODEL_PUBLIC
+        b.vp.settingDetectBP(b.writeResp, object : IBPSettingDataListener {
+            override fun onDataChange(d: BpSettingData?) {
+                b.emit("bpCalibrationSaved", mapOf(
+                    "privateMode" to openPrivate,
+                    "systolic" to (d?.highPressure ?: systolic),
+                    "diastolic" to (d?.lowPressure ?: diastolic),
+                    "status" to d?.status?.name,
+                ))
+            }
+        }, setting)
+    }
 
     // ----------------------------------------------------------------- blood pressure
     fun startBp(method: String) {
@@ -55,20 +74,20 @@ internal class VeepooMeasureHandler(private val b: VeepooBridge) {
                     // Javadoc: ค่าที่ใช้ได้คือค่าแรกที่ progress = 100 แล้วต้อง stop ทันที
                     if (d.progress >= 100 && !ppgBpResultSent) {
                         ppgBpResultSent = true
-                        b.vp.stopDetectBP(b.writeResp, EBPDetectModel.DETECT_MODEL_PUBLIC)
+                        b.vp.stopDetectBP(b.writeResp, bpModel)
                         b.emit("bpResult", mapOf(
                             "method" to "ppg", "status" to "SUCCESS", "source" to "live",
                             "systolic" to d.highPressure, "diastolic" to d.lowPressure, "at" to b.nowSec(),
                         ))
                     }
                 }
-            }, EBPDetectModel.DETECT_MODEL_PUBLIC)
+            }, bpModel)
         }
     }
 
     fun stopBp(method: String) {
         if (method == "cuff") b.vp.stopDetectCuffBP(b.writeResp)
-        else b.vp.stopDetectBP(b.writeResp, EBPDetectModel.DETECT_MODEL_PUBLIC)
+        else b.vp.stopDetectBP(b.writeResp, bpModel)
     }
 
     // ----------------------------------------------------------------- ECG

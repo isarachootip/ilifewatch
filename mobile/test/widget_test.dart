@@ -67,6 +67,24 @@ void main() {
     expect(find.text('Training'), findsOneWidget);
     expect(find.text('Geräte'), findsOneWidget);
     expect(Directionality.of(tester.element(find.byType(Scaffold).first)), TextDirection.ltr);
+
+    // 6. Switch to Southern Jawi (بهاس جاوي) and verify RTL Directionality
+    await AppState.instance.setLanguage(AppLanguage.jawi);
+    await tester.pumpAndSettle();
+    expect(find.text('كصيحتن'), findsWidgets);
+    expect(Directionality.of(tester.element(find.byType(Scaffold).first)), TextDirection.rtl);
+
+    // 7. Switch to Russian (Русский) and verify LTR Directionality
+    await AppState.instance.setLanguage(AppLanguage.ru);
+    await tester.pumpAndSettle();
+    expect(find.text('Здоровье'), findsWidgets);
+    expect(Directionality.of(tester.element(find.byType(Scaffold).first)), TextDirection.ltr);
+
+    // 8. Switch to Hebrew (עברית) and verify RTL Directionality
+    await AppState.instance.setLanguage(AppLanguage.he);
+    await tester.pumpAndSettle();
+    expect(find.text('בריאות'), findsWidgets);
+    expect(Directionality.of(tester.element(find.byType(Scaffold).first)), TextDirection.rtl);
   });
 
   test('BpCategory classifies readings and translates across languages', () {

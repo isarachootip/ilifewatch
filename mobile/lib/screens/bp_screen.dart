@@ -9,6 +9,7 @@ import '../services/sync_service.dart';
 import '../watch/watch_models.dart';
 import '../watch/watch_service.dart';
 import 'bp_category.dart';
+import 'widgets/bp_calibration_sheet.dart';
 
 /// วัดความดันจากแอป (ค่าเริ่มต้นใช้ปั๊มลมในสาย)
 class BpScreen extends StatefulWidget {
@@ -68,7 +69,16 @@ class _BpScreenState extends State<BpScreen> {
   Widget build(BuildContext context) {
     final t = Theme.of(context).textTheme;
     return Scaffold(
-      appBar: AppBar(title: Text(tr('bp_screen_title'))),
+      appBar: AppBar(
+        title: Text(tr('bp_screen_title')),
+        actions: [
+          IconButton(
+            tooltip: 'BP Calibration',
+            icon: const Icon(Icons.tune),
+            onPressed: () => showBpCalibrationSheet(context),
+          ),
+        ],
+      ),
       body: Padding(
         padding: const EdgeInsets.all(20),
         child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [

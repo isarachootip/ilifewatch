@@ -172,10 +172,29 @@ def test_dashboard_extended_summary_and_static_assets(client):
     dash = client.get("/dashboard")
     assert dash.status_code == 200
     assert "langSelect" in dash.text
-    for asset in ("/static/i18n.js", "/static/charts.js", "/static/dashboard.js"):
+    for asset in ("/static/i18n.js", "/static/i18n_extra.js", "/static/charts.js", "/static/dashboard.js"):
         res = client.get(asset)
         assert res.status_code == 200, asset
-    i18n_txt = client.get("/static/i18n.js").text
-    for lang in ("th:", "en:", "zh:", "ar:", "de:"):
+    i18n_txt = client.get("/static/i18n.js").text + client.get("/static/i18n_extra.js").text
+    for lang in ("th:", "en:", "zh:", "ar:", "de:", "jawi:", "ru:", "he:"):
         assert lang in i18n_txt
+
+    # Admin notification settings (LINE OA + Webhook)
+    ha = staff_token(client, "admin.care@demo.local")
+    ru = client.put(
+        "/v1/staff/org/notifications",
+        headers=ha,
+        json={
+            "webhook_url": "https://example.local/hook",
+            "line_channel_token": "line-secret-token-123456",
+            "line_target_id": "C1234567890",
+        },
+    )
+    assert ru.status_code == 200
+    rg = client.get("/v1/staff/org/notifications", headers=ha).json()
+    assert rg["webhook_url"] == "https://example.local/hook"
+    assert rg["line_target_id"] == "C1234567890"
+    assert rg["has_line_token"] is True
+    assert "line-s" in rg["line_token_masked"]
+
 

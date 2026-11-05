@@ -154,18 +154,35 @@ async function viewAgg() {
    <h3>${t('bpDist30d')}</h3><table>${Object.entries(L).map(([k, l]) => `<tr><td>${l}</td><td>${c[k] ?? 0}</td></tr>`).join('')}</table></div>`;
 }
 
-function viewAdd() {
-  $('#view').innerHTML = `<div class="card" style="max-width:460px"><h3 style="margin-top:0">${t('addTitle')}</h3>
+async function viewAdd() {
+  const nf = await api('/v1/staff/org/notifications').catch(() => ({ webhook_url: '', line_target_id: '', line_token_masked: '' }));
+  $('#view').innerHTML = `<div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(320px,1fr))">
+  <div class="card"><h3 style="margin-top:0">${t('addTitle')}</h3>
   <p><input id="n" placeholder="${t('displayName')}"></p><p class="row"><select id="sx" style="width:auto"><option value="F">${t('female')}</option><option value="M">${t('male')}</option></select>
   <input id="by" type="number" placeholder="${t('birthYear')}" style="flex:1"></p><p class="row"><input id="h" type="number" placeholder="${t('heightCm')}" style="flex:1"><input id="w" type="number" placeholder="${t('weightKg')}" style="flex:1"></p>
-  <p><input id="ec" placeholder="${t('emergPlaceholder')}"></p><p><button class="primary" id="save">${t('createBtn')}</button></p><div id="out"></div></div>`;
+  <p><input id="ec" placeholder="${t('emergPlaceholder')}"></p><p><button class="primary" id="save">${t('createBtn')}</button></p><div id="out"></div></div>
+  <div class="card"><h3 style="margin-top:0">${t('notifTitle') || 'ตั้งค่าแจ้งเตือนภายนอก (LINE OA & Webhook)'}</h3>
+  <p><input id="wh" value="${esc(nf.webhook_url)}" placeholder="Webhook URL (Nurse Call / n8n)"></p>
+  <p><input id="ltok" type="password" placeholder="LINE Channel Access Token ${nf.line_token_masked ? '(' + esc(nf.line_token_masked) + ')' : ''}"></p>
+  <p><input id="ltid" value="${esc(nf.line_target_id)}" placeholder="LINE Target ID (Group ID / User ID)"></p>
+  <p class="row"><button class="primary" id="nsave">${t('saveReview')}</button><button id="ntest">${t('testNotifBtn') || 'ทดสอบส่งแจ้งเตือน'}</button></p>
+  <div id="nout" class="muted"></div></div></div>`;
   $('#save').onclick = async () => {
     try {
       const r = await api('/v1/staff/patients', { method: 'POST', body: JSON.stringify({ display_name: $('#n').value, sex: $('#sx').value, birth_year: +$('#by').value, height_cm: +$('#h').value, weight_kg: +$('#w').value, emergency_contact: $('#ec').value || null }) });
       $('#out').innerHTML = `<div class="card" style="background:var(--soft)"><b>${t('enrollCode')}:</b> ${esc(r.enrollment_code)}<br><b>PIN:</b> ${esc(r.pin)}<p class="muted">${t('pinOnce')}</p></div>`;
     } catch (e) { $('#out').innerHTML = `<p class="crit">${esc(e.message)}</p>`; }
   };
-  return Promise.resolve();
+  $('#nsave').onclick = async () => {
+    const body = { webhook_url: $('#wh').value, line_target_id: $('#ltid').value };
+    if ($('#ltok').value.trim()) body.line_channel_token = $('#ltok').value.trim();
+    await api('/v1/staff/org/notifications', { method: 'PUT', body: JSON.stringify(body) });
+    $('#nout').textContent = t('saved');
+  };
+  $('#ntest').onclick = async () => {
+    const res = await api('/v1/staff/org/notifications/test', { method: 'POST' });
+    $('#nout').textContent = `Webhook: ${res.webhook} · LINE OA: ${res.line}`;
+  };
 }
 
 render();

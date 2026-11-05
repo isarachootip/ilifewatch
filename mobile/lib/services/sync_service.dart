@@ -46,7 +46,15 @@ class SyncService {
   Future<void> afterConnect() async {
     final p = _state.profile;
     try {
+      await _watch.setForegroundGuard(_state.bgServiceEnabled);
       if (p != null) await _watch.syncProfile(p);
+      if (_state.bpPrivateMode) {
+        await _watch.configureBpCalibration(
+          privateMode: true,
+          systolic: _state.bpCalSystolic,
+          diastolic: _state.bpCalDiastolic,
+        );
+      }
     } catch (_) {}
     try {
       await _watch.enableWatchAutoDetect();

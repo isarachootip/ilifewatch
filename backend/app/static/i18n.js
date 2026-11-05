@@ -1,5 +1,8 @@
-// iLife Watch Staff Dashboard — 5-Language Localization (TH, EN, ZH, AR, DE)
-const LOCALES = { th: 'th-TH', en: 'en-US', zh: 'zh-CN', ar: 'ar-SA', de: 'de-DE' };
+// iLife Watch Staff Dashboard — 8-Language Localization (TH, EN, ZH, AR, DE, JAWI, RU, HE)
+const LOCALES = {
+  th: 'th-TH', en: 'en-US', zh: 'zh-CN', ar: 'ar-SA',
+  de: 'de-DE', jawi: 'ms-MY', ru: 'ru-RU', he: 'he-IL'
+};
 
 const DICT = {
   th: {
@@ -172,8 +175,9 @@ function fmt(iso) { return iso ? new Date(iso).toLocaleString(LOCALES[curLang], 
 function fmtDate(ms) { return new Date(ms).toLocaleDateString(LOCALES[curLang]); }
 
 function applyLangUI() {
+  if (!DICT[curLang]) curLang = 'th';
   document.documentElement.lang = curLang;
-  document.documentElement.dir = curLang === 'ar' ? 'rtl' : 'ltr';
+  document.documentElement.dir = (curLang === 'ar' || curLang === 'jawi' || curLang === 'he') ? 'rtl' : 'ltr';
   const sel = document.getElementById('langSelect');
   if (sel && sel.value !== curLang) sel.value = curLang;
   document.getElementById('brandTitle').textContent = t('brand');

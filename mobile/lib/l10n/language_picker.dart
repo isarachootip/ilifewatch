@@ -73,48 +73,53 @@ Future<void> showLanguagePickerSheet(BuildContext context) {
                 ],
               ),
               const SizedBox(height: 10),
-              ...AppLanguage.values.map((lang) {
-                final selected = lang == current;
-                return ListTile(
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  tileColor: selected ? ILifeTheme.magentaLight.withAlpha(120) : null,
-                  leading: Container(
-                    width: 42,
-                    height: 32,
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                      color: selected ? ILifeTheme.magenta : ILifeTheme.scaffoldBg,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Text(
-                      lang.badge,
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w800,
-                        color: selected ? Colors.white : ILifeTheme.navy,
+              Flexible(
+                child: ListView(
+                  shrinkWrap: true,
+                  children: AppLanguage.values.map((lang) {
+                    final selected = lang == current;
+                    return ListTile(
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      tileColor: selected ? ILifeTheme.magentaLight.withAlpha(120) : null,
+                      leading: Container(
+                        width: 42,
+                        height: 32,
+                        alignment: Alignment.center,
+                        decoration: BoxDecoration(
+                          color: selected ? ILifeTheme.magenta : ILifeTheme.scaffoldBg,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          lang.badge,
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w800,
+                            color: selected ? Colors.white : ILifeTheme.navy,
+                          ),
+                        ),
                       ),
-                    ),
-                  ),
-                  title: Text(
-                    lang.nativeName,
-                    style: TextStyle(
-                      fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
-                      color: ILifeTheme.navy,
-                    ),
-                  ),
-                  subtitle: Text(
-                    lang.englishName,
-                    style: const TextStyle(fontSize: 12, color: ILifeTheme.textSecondary),
-                  ),
-                  trailing: selected
-                      ? const Icon(Icons.check_circle, color: ILifeTheme.magenta)
-                      : null,
-                  onTap: () {
-                    AppState.instance.setLanguage(lang);
-                    Navigator.pop(ctx);
-                  },
-                );
-              }),
+                      title: Text(
+                        lang.nativeName,
+                        style: TextStyle(
+                          fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
+                          color: ILifeTheme.navy,
+                        ),
+                      ),
+                      subtitle: Text(
+                        lang.englishName,
+                        style: const TextStyle(fontSize: 12, color: ILifeTheme.textSecondary),
+                      ),
+                      trailing: selected
+                          ? const Icon(Icons.check_circle, color: ILifeTheme.magenta)
+                          : null,
+                      onTap: () {
+                        AppState.instance.setLanguage(lang);
+                        Navigator.pop(ctx);
+                      },
+                    );
+                  }).toList(),
+                ),
+              ),
             ],
           ),
         ),

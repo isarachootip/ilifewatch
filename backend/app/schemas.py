@@ -101,3 +101,10 @@ class AckIn(BaseModel):
 
 class EcgReviewIn(BaseModel):
     note: str
+
+
+class NotificationSettingsIn(BaseModel):
+    webhook_url: str | None = None
+    line_channel_token: str | None = None
+    line_target_id: str | None = None
+
