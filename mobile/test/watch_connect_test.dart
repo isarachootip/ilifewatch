@@ -63,4 +63,11 @@ void main() {
     expect(find.text('38'), findsOneWidget);
     expect(find.text('64 ms'), findsOneWidget);
   });
+
+  test('WatchService tracks pairing screen lock to prevent background reconnect collision', () {
+    WatchService.instance.setPairingActive(true);
+    expect(WatchService.instance.isPairingActive, isTrue);
+    WatchService.instance.setPairingActive(false);
+    expect(WatchService.instance.isPairingActive, isFalse);
+  });
 }

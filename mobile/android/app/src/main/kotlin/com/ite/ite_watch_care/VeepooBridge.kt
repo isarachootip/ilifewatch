@@ -88,7 +88,7 @@ class VeepooBridge(internal val appContext: Context, messenger: BinaryMessenger)
                     connectionHandler.connect(call.argument<String>("mac")!!, name)
                     result.success(null)
                 }
-                "disconnect" -> { vp.disconnectWatch(writeResp); result.success(null) }
+                "disconnect" -> { connectionHandler.disconnect(); result.success(null) }
                 "syncProfile" -> connectionHandler.syncProfile(call, result)
                 "readBattery" -> { connectionHandler.readBattery(); result.success(null) }
                 "startBp" -> { measureHandler.startBp(call.argument<String>("method") ?: "cuff"); result.success(null) }

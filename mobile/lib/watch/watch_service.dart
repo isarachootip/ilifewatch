@@ -4,14 +4,7 @@ import 'package:flutter/services.dart';
 
 import 'watch_models.dart';
 
-/// ตัวเชื่อมระหว่าง Flutter กับ Veepoo SDK ฝั่ง native
-///
-/// - Android: android/app/src/main/kotlin/com/ite/ite_watch_care/VeepooBridge.kt
-/// - iOS:     ios/Runner/VeepooBridge.swift
-///
-/// ทั้งสองฝั่งส่ง event รูปแบบเดียวกัน (Map ที่มี key "type") ผ่าน EventChannel เดียว
-/// หมายเหตุ: นาฬิกาทำงานได้ทีละคำสั่ง (SDK ระบุว่าห้ามสั่งพร้อมกัน)
-/// คลาสนี้จึงมีคิว [_run] ให้คำสั่งที่ใช้เวลานานทำทีละอย่าง
+/// ตัวเชื่อมระหว่าง Flutter กับ Veepoo SDK ฝั่ง native (Android VeepooBridge.kt / iOS VeepooBridge.swift)
 class WatchService {
   WatchService._();
   static final WatchService instance = WatchService._();
@@ -27,18 +20,18 @@ class WatchService {
       .map((e) => Map<String, dynamic>.from(e as Map))
       .asBroadcastStream();
 
-  Stream<Map<String, dynamic>> eventsOf(String type) =>
-      events.where((e) => e['type'] == type);
-
-  Stream<ScannedWatch> get scanResults =>
-      eventsOf('scan').map(ScannedWatch.fromMap);
-
+  Stream<Map<String, dynamic>> eventsOf(String type) => events.where((e) => e['type'] == type);
+  Stream<ScannedWatch> get scanResults => eventsOf('scan').map(ScannedWatch.fromMap);
   Stream<WatchConnection> get connection =>
       eventsOf('connection').map((e) => connectionFromString(e['state'] as String));
 
   WatchConnection _state = WatchConnection.disconnected;
   WatchConnection get state => _state;
   Map<String, dynamic>? deviceInfo;
+  bool _pairingActive = false;
+  bool get isPairingActive => _pairingActive;
+  void setPairingActive(bool v) => _pairingActive = v;
+  Future<void>? _connecting;
 
   bool _listening = false;
   void ensureListening() {
@@ -73,14 +66,30 @@ class WatchService {
 
   Future<void> stopScan() => _method.invokeMethod('stopScan');
 
-  /// เชื่อมต่อ แล้วรอจนยืนยันรหัสผ่านสำเร็จ (state = ready)
-  Future<void> connect(String mac, {String name = 'F520Pro', String password = '0000'}) async {
+  /// เชื่อมต่อแบบ Single-Flight Lock แล้วรอจนยืนยันรหัสผ่านสำเร็จ (state = ready)
+  Future<void> connect(
+    String mac, {
+    String name = 'F520Pro',
+    String password = '0000',
+    Duration timeout = const Duration(seconds: 32),
+  }) {
     ensureListening();
-    final ready = connection
-        .firstWhere((s) => s == WatchConnection.ready || s == WatchConnection.failed)
-        .timeout(const Duration(seconds: 40));
+    if (_connecting != null) return _connecting!;
+    final f = _doConnect(mac, name: name, password: password, timeout: timeout);
+    _connecting = f.whenComplete(() => _connecting = null);
+    return _connecting!;
+  }
+
+  Future<void> _doConnect(String mac, {required String name, required String password, required Duration timeout}) async {
+    final ready = connection.firstWhere((s) => s == WatchConnection.ready || s == WatchConnection.failed).timeout(timeout);
     await _method.invokeMethod('connect', {'mac': mac, 'name': name, 'password': password});
-    final s = await ready;
+    WatchConnection s;
+    try {
+      s = await ready;
+    } catch (_) {
+      await _method.invokeMethod('disconnect');
+      rethrow;
+    }
     if (s != WatchConnection.ready) {
       throw PlatformException(code: 'CONNECT_FAILED', message: 'เชื่อมต่อนาฬิกาไม่สำเร็จ');
     }
@@ -89,9 +98,8 @@ class WatchService {
   Future<void> disconnect() => _method.invokeMethod('disconnect');
 
   /// ต้องเรียกหลังเชื่อมต่อทุกครั้ง: ความดัน/แคลอรี่คำนวณจากข้อมูลนี้
-  Future<void> syncProfile(UserProfile p) => runQueued(
-        () => _method.invokeMethod('syncProfile', p.toMap()).timeout(const Duration(seconds: 10)),
-      );
+  Future<void> syncProfile(UserProfile p) =>
+      runQueued(() => _method.invokeMethod('syncProfile', p.toMap()).timeout(const Duration(seconds: 10)));
 
   Future<Map<String, dynamic>> readBattery() => runQueued(() async {
         final f = eventsOf('battery').first.timeout(const Duration(seconds: 10));
@@ -101,9 +109,7 @@ class WatchService {
 
   // ---------- วัดความดัน ----------
   Future<BpReading> measureBloodPressure({bool cuff = true}) => runQueued(() async {
-        final done = events
-            .firstWhere((e) => e['type'] == 'bpResult' || e['type'] == 'bpError')
-            .timeout(const Duration(seconds: 120));
+        final done = events.firstWhere((e) => e['type'] == 'bpResult' || e['type'] == 'bpError').timeout(const Duration(seconds: 120));
         await _method.invokeMethod('startBp', {'method': cuff ? 'cuff' : 'ppg'});
         final Map<String, dynamic> e;
         try {
@@ -117,8 +123,7 @@ class WatchService {
         return bpFromEvent(e);
       });
 
-  Future<void> cancelBloodPressure({bool cuff = true}) =>
-      _method.invokeMethod('stopBp', {'method': cuff ? 'cuff' : 'ppg'});
+  Future<void> cancelBloodPressure({bool cuff = true}) => _method.invokeMethod('stopBp', {'method': cuff ? 'cuff' : 'ppg'});
 
   static BpReading bpFromEvent(Map e) => BpReading(
         measuredAt: e['at'] != null ? parseWatchTime(e['at']) : DateTime.now(),
@@ -133,9 +138,7 @@ class WatchService {
 
   // ---------- ECG ----------
   Future<EcgRecord> measureEcg() => runQueued(() async {
-        final done = events
-            .firstWhere((e) => e['type'] == 'ecgResult' || e['type'] == 'ecgError')
-            .timeout(const Duration(seconds: 150));
+        final done = events.firstWhere((e) => e['type'] == 'ecgResult' || e['type'] == 'ecgError').timeout(const Duration(seconds: 150));
         await _method.invokeMethod('startEcg');
         final Map<String, dynamic> e;
         try {
@@ -176,24 +179,13 @@ class WatchService {
 
 String bpStatusThai(String s) {
   const m = {
-    'POSTURE_ERROR': 'ท่าทางไม่ถูกต้อง ให้วางแขนระดับหัวใจ',
-    'LOOSE': 'สายหลวมเกินไป รัดสายให้แน่นขึ้น',
-    'NOT_WEAR': 'ไม่ได้สวมนาฬิกา',
-    'TIME_OUT': 'หมดเวลาวัด',
-    'HEART_ERROR': 'จับชีพจรไม่ได้',
-    'SLOW_DEFLATION': 'ปล่อยลมช้าผิดปกติ',
-    'TOO_MUCH_PRESSURE': 'แรงดันสูงเกินกำหนด',
-    'POOR_SIGNAL_QUALITY': 'สัญญาณไม่ดี',
-    'NOT_REMAINING_STATIONARY': 'ขยับระหว่างวัด กรุณานั่งนิ่งๆ',
-    'CHARGING': 'นาฬิกากำลังชาร์จ',
-    'LOW_POWER': 'แบตเตอรี่ต่ำ',
-    'LOW_BATTERY': 'แบตเตอรี่ต่ำ',
-    'DEVICE_BUSY': 'นาฬิกากำลังทำงานอื่นอยู่',
-    'BUSY': 'นาฬิกากำลังทำงานอื่นอยู่',
-    'WEAR_OFF': 'ไม่ได้สวมนาฬิกา',
-    'FAILED': 'วัดไม่สำเร็จ',
-    'NO_FUNCTION': 'นาฬิการุ่นนี้ไม่รองรับ',
-    'FUNCTION_NOT_SUPPORT': 'กำลังสลับโหมดวัดต่อเนื่องอัตโนมัติ',
+    'POSTURE_ERROR': 'ท่าทางไม่ถูกต้อง ให้วางแขนระดับหัวใจ', 'LOOSE': 'สายหลวมเกินไป รัดสายให้แน่นขึ้น',
+    'NOT_WEAR': 'ไม่ได้สวมนาฬิกา', 'WEAR_OFF': 'ไม่ได้สวมนาฬิกา', 'TIME_OUT': 'หมดเวลาวัด',
+    'HEART_ERROR': 'จับชีพจรไม่ได้', 'SLOW_DEFLATION': 'ปล่อยลมช้าผิดปกติ', 'TOO_MUCH_PRESSURE': 'แรงดันสูงเกินกำหนด',
+    'POOR_SIGNAL_QUALITY': 'สัญญาณไม่ดี', 'NOT_REMAINING_STATIONARY': 'ขยับระหว่างวัด กรุณานั่งนิ่งๆ',
+    'CHARGING': 'นาฬิกากำลังชาร์จ', 'LOW_POWER': 'แบตเตอรี่ต่ำ', 'LOW_BATTERY': 'แบตเตอรี่ต่ำ',
+    'DEVICE_BUSY': 'นาฬิกากำลังทำงานอื่นอยู่', 'BUSY': 'นาฬิกากำลังทำงานอื่นอยู่', 'FAILED': 'วัดไม่สำเร็จ',
+    'NO_FUNCTION': 'นาฬิการุ่นนี้ไม่รองรับ', 'FUNCTION_NOT_SUPPORT': 'กำลังสลับโหมดวัดต่อเนื่องอัตโนมัติ',
     'INTERRUPTED': 'ยกเลิกการวัด',
   };
   return m[s] ?? 'วัดไม่สำเร็จ ($s)';

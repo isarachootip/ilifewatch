@@ -23,17 +23,19 @@ class MainShell extends StatefulWidget {
   State<MainShell> createState() => _MainShellState();
 }
 
-class _MainShellState extends State<MainShell> {
+class _MainShellState extends State<MainShell> with WidgetsBindingObserver {
   final _watch = WatchService.instance;
   int _tab = 0;
   WatchConnection _conn = WatchConnection.disconnected;
   double? _syncProgress;
   StreamSubscription? _connSub, _progSub;
+  Timer? _reconnectTimer;
   bool _reconnecting = false;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _conn = _watch.state;
     _connSub = _watch.connection.listen((c) {
       if (mounted) setState(() => _conn = c);
@@ -44,44 +46,59 @@ class _MainShellState extends State<MainShell> {
     _progSub = SyncService.instance.progress.stream.listen((p) {
       if (mounted) setState(() => _syncProgress = p >= 1 ? null : p);
     });
-    if (_conn != WatchConnection.ready && AppState.instance.pairedMac != null) {
-      _reconnect();
-    }
+    _reconnectTimer = Timer.periodic(const Duration(seconds: 18), (_) => _tryAutoReconnect());
+    _tryAutoReconnect();
     SyncService.instance.startPeriodicSync();
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _reconnectTimer?.cancel();
     SyncService.instance.stopPeriodicSync();
     _connSub?.cancel();
     _progSub?.cancel();
     super.dispose();
   }
 
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) _tryAutoReconnect();
+  }
+
+  void _tryAutoReconnect() {
+    if (mounted && _conn != WatchConnection.ready && !_watch.isPairingActive && AppState.instance.pairedMac != null) {
+      _reconnect();
+    }
+  }
+
   void _scheduleReconnect() {
-    Future.delayed(const Duration(seconds: 10), () {
-      if (mounted && _conn != WatchConnection.ready) _reconnect();
-    });
+    Future.delayed(const Duration(seconds: 5), () => _tryAutoReconnect());
   }
 
   Future<void> _reconnect() async {
     final mac = AppState.instance.pairedMac;
     final name = AppState.instance.pairedName ?? 'F520Pro';
-    if (mac == null || _reconnecting) return;
+    if (mac == null || _reconnecting || _watch.isPairingActive || _conn == WatchConnection.ready) return;
     _reconnecting = true;
     try {
       // ขั้นที่ 1: เชื่อมต่อตรงด้วย MAC ทันทีโดยไม่ต้องรอสแกน
       try {
-        await _watch.connect(mac, name: name).timeout(const Duration(seconds: 12));
+        await _watch.connect(mac, name: name, timeout: const Duration(seconds: 14));
         await SyncService.instance.afterConnect();
         return;
       } catch (_) {}
 
-      // ขั้นที่ 2: หากต่อตรงไม่สำเร็จ ให้สแกนค้นหาสัญญาณ BLE แล้วต่อซ้ำ
-      final found = _watch.scanResults.firstWhere((w) => w.mac == mac).timeout(const Duration(seconds: 15));
+      if (_watch.isPairingActive) return;
+
+      // ขั้นที่ 2: หากต่อตรงไม่สำเร็จ ให้สแกนค้นหาสัญญาณ BLE แล้วต่อซ้ำเมื่อพบเรือนเดิม
+      final target = mac.toUpperCase();
+      final found = _watch.scanResults.firstWhere((w) => w.mac.toUpperCase() == target).timeout(const Duration(seconds: 12));
       await _watch.startScan();
       await found;
-      await _watch.connect(mac, name: name);
+      await _watch.stopScan();
+      if (_watch.isPairingActive) return;
+      await _watch.connect(mac, name: name, timeout: const Duration(seconds: 22));
       await SyncService.instance.afterConnect();
     } catch (_) {
       await _watch.stopScan();

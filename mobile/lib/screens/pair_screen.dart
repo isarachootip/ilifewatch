@@ -32,6 +32,7 @@ class _PairScreenState extends State<PairScreen> {
   @override
   void initState() {
     super.initState();
+    WatchService.instance.setPairingActive(true);
     _connSub = WatchService.instance.connection.listen((s) {
       if (mounted) setState(() => _stage = s);
     });
@@ -48,11 +49,11 @@ class _PairScreenState extends State<PairScreen> {
     ].request();
     final btOk = (req[Permission.bluetoothScan]?.isGranted ?? false) &&
         (req[Permission.bluetoothConnect]?.isGranted ?? false);
-    final locOk = req[Permission.locationWhenInUse]?.isGranted ?? false;
-    return btOk || locOk;
+    return btOk || (req[Permission.locationWhenInUse]?.isGranted ?? false);
   }
 
   Future<void> _start() async {
+    _autoAttempted = false;
     setState(() => _error = null);
     if (!await _askPermissions()) {
       setState(() => _error = tr('perm_bt_error'));
@@ -115,6 +116,7 @@ class _PairScreenState extends State<PairScreen> {
 
   @override
   void dispose() {
+    WatchService.instance.setPairingActive(false);
     _autoTimer?.cancel();
     _sub?.cancel();
     _connSub?.cancel();
