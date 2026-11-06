@@ -3,8 +3,10 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ite_watch_care/app_state.dart';
 import 'package:ite_watch_care/l10n/app_language.dart';
+import 'package:ite_watch_care/screens/mini_checkup_screen.dart';
 import 'package:ite_watch_care/screens/pair_screen.dart';
 import 'package:ite_watch_care/watch/watch_models.dart';
+import 'package:ite_watch_care/watch/watch_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
@@ -42,5 +44,23 @@ void main() {
 
     expect(find.textContaining('กำลังสแกนหานาฬิกา F520Pro'), findsOneWidget);
     expect(find.textContaining('5 ขั้นตอนการเชื่อมต่อที่ถูกต้อง'), findsOneWidget);
+  });
+
+  test('AppState stores stress and hrv vitals and bpStatusThai translates FUNCTION_NOT_SUPPORT', () {
+    AppState.instance.setVital('stress', 36);
+    AppState.instance.setVital('hrv', 62);
+    expect(AppState.instance.latestStress, 36);
+    expect(AppState.instance.latestHrv, 62);
+    expect(bpStatusThai('FUNCTION_NOT_SUPPORT'), isNot(contains('FUNCTION_NOT_SUPPORT')));
+  });
+
+  testWidgets('MiniCheckupScreen displays latest Stress and HRV from AppState', (tester) async {
+    AppState.instance.setVital('stress', 38);
+    AppState.instance.setVital('hrv', 64);
+    await tester.pumpWidget(const MaterialApp(home: MiniCheckupScreen()));
+    await tester.pump();
+
+    expect(find.text('38'), findsOneWidget);
+    expect(find.text('64 ms'), findsOneWidget);
   });
 }

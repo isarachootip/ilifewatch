@@ -31,8 +31,9 @@ class VeepooBridge(internal val appContext: Context, messenger: BinaryMessenger)
 
     internal val vp: VPOperateManager = VPOperateManager.getInstance().also {
         it.init(appContext.applicationContext)
-        // ปิดการรอยืนยันบนหน้าจอนาฬิกา (无需连接确认) เพื่อเชื่อมต่อและ Auto-Reconnect ทันทีโดยไม่ติด Timeout 12 วินาที
+        // ปิดการรอยืนยันบนหน้าจอนาฬิกา (无需连接确认) และปิด Toast ภาษาอังกฤษ "This feature is not supported" ของ SDK
         it.setDeviceShowConfirm(false)
+        VPOperateManager.setShowFunctionNotSupportToast(false)
     }
     internal val main = Handler(Looper.getMainLooper())
     private var sink: EventChannel.EventSink? = null
@@ -115,7 +116,11 @@ class VeepooBridge(internal val appContext: Context, messenger: BinaryMessenger)
                     manualReader.readManual((call.argument<Number>("since") ?: 0).toLong())
                     result.success(null)
                 }
-                "startMiniCheckup" -> { miniCheckupHandler.startMiniCheckup(); result.success(null) }
+                "startMiniCheckup" -> {
+                    val args = (call.arguments as? Map<*, *>)?.entries?.associate { it.key.toString() to it.value } ?: emptyMap()
+                    miniCheckupHandler.startMiniCheckup(args)
+                    result.success(null)
+                }
                 "stopMiniCheckup" -> { miniCheckupHandler.stopMiniCheckup(); result.success(null) }
                 "enableAutoDetect" -> { miniCheckupHandler.enableAutoDetect(); result.success(null) }
                 "setForegroundService" -> {

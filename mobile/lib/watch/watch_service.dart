@@ -169,8 +169,7 @@ class WatchService {
 
   Future<void> readWatchMeasurements(DateTime since) => runQueued(() async {
         final done = eventsOf('manualDone').first.timeout(const Duration(minutes: 2));
-        await _method.invokeMethod(
-            'readWatchMeasurements', {'since': since.millisecondsSinceEpoch ~/ 1000});
+        await _method.invokeMethod('readWatchMeasurements', {'since': since.millisecondsSinceEpoch ~/ 1000});
         await done;
       });
 }
@@ -194,6 +193,7 @@ String bpStatusThai(String s) {
     'WEAR_OFF': 'ไม่ได้สวมนาฬิกา',
     'FAILED': 'วัดไม่สำเร็จ',
     'NO_FUNCTION': 'นาฬิการุ่นนี้ไม่รองรับ',
+    'FUNCTION_NOT_SUPPORT': 'กำลังสลับโหมดวัดต่อเนื่องอัตโนมัติ',
     'INTERRUPTED': 'ยกเลิกการวัด',
   };
   return m[s] ?? 'วัดไม่สำเร็จ ($s)';

@@ -10,17 +10,22 @@ import com.veepoo.protocol.model.enums.EFunctionStatus
 import com.veepoo.protocol.model.enums.EMiniCheckupTestErrorCode
 import com.veepoo.protocol.model.settings.CustomSetting
 import com.veepoo.protocol.model.settings.CustomSettingData
+import com.veepoo.protocol.shareprence.VpSpGetUtil
 
 /**
  * จัดการฟีเจอร์ใหม่จาก Joeme Fit SDK 260626_new:
  * 1) One-Tap Mini Checkup (ตรวจสุขภาพด่วนในปุ่มเดียว 60 วินาที: ชีพจร, ความดัน, SpO2, อุณหภูมิ, ความเครียด, HRV)
+ *    พร้อมระบบสลับเป็นโหมดวัดต่อเนื่องอัตโนมัติ (VeepooSequentialCheckup) สำหรับ F520Pro
  * 2) เปิดโหมดวัดอัตโนมัติ 24 ชม. บนตัวนาฬิกา (Auto HR, Auto BP, Auto Temp, Auto HRV, Auto Stress)
  */
 internal class VeepooMiniCheckupHandler(private val b: VeepooBridge) {
 
+    private val sequential = VeepooSequentialCheckup(b)
+    private var lastFallback: Map<String, Any?> = emptyMap()
+
     private val checkupListener = object : IMiniCheckupOptListener {
         override fun onMiniCheckupTestProgress(progress: Int) {
-            b.emit("miniCheckupProgress", mapOf("progress" to progress))
+            b.emit("miniCheckupProgress", mapOf("progress" to progress, "step" to "กำลังตรวจสุขภาพด่วนครบทุกค่า..."))
         }
 
         override fun onMiniCheckupStopSuccess() {
@@ -28,6 +33,10 @@ internal class VeepooMiniCheckupHandler(private val b: VeepooBridge) {
         }
 
         override fun onMiniCheckupTestFailed(errorCode: EMiniCheckupTestErrorCode) {
+            if (errorCode == EMiniCheckupTestErrorCode.FUNCTION_NOT_SUPPORT) {
+                sequential.start(lastFallback)
+                return
+            }
             b.emit("miniCheckupError", mapOf("status" to errorCode.name))
         }
 
@@ -69,12 +78,22 @@ internal class VeepooMiniCheckupHandler(private val b: VeepooBridge) {
         }
     }
 
-    fun startMiniCheckup() {
+    fun startMiniCheckup(fallback: Map<String, Any?> = emptyMap()) {
+        lastFallback = fallback
+        val sp = VpSpGetUtil.getVpSpVariInstance(b.appContext)
+        if (!sp.isSupportMiniCheckup()) {
+            sequential.start(fallback)
+            return
+        }
         b.vp.startMiniCheckup(b.writeResp, checkupListener)
     }
 
     fun stopMiniCheckup() {
-        b.vp.stopMiniCheckup(b.writeResp, checkupListener)
+        sequential.stop(silent = false)
+        val sp = VpSpGetUtil.getVpSpVariInstance(b.appContext)
+        if (sp.isSupportMiniCheckup()) {
+            b.vp.stopMiniCheckup(b.writeResp, checkupListener)
+        }
     }
 
     /**
@@ -95,6 +114,8 @@ internal class VeepooMiniCheckupHandler(private val b: VeepooBridge) {
     }
 
     private fun enableV2AutoMeasureItems() {
+        val sp = VpSpGetUtil.getVpSpVariInstance(b.appContext)
+        if (!sp.isSupportAutoMeasure()) return
         b.vp.readAutoMeasureSettingData(b.writeResp, object : IAutoMeasureSettingDataListener {
             override fun onSettingDataChange(list: MutableList<AutoMeasureData>?) {
                 val pending = list?.filter { !it.isSwitchOpen } ?: return

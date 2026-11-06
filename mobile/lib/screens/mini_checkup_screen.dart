@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../app_state.dart';
 import '../l10n/app_language.dart';
@@ -45,7 +46,7 @@ class _MiniCheckupScreenState extends State<MiniCheckupScreen> {
   StreamSubscription<Map<String, dynamic>>? _sub;
   bool _busy = false;
   int _progress = 0;
-  String? _error;
+  String? _step, _error;
   Map<String, dynamic>? _result;
 
   static String _startBtn(AppLanguage l) => switch (l) {
@@ -74,7 +75,16 @@ class _MiniCheckupScreenState extends State<MiniCheckupScreen> {
   void initState() {
     super.initState();
     _sub = _watch.eventsOf('miniCheckupProgress').listen((e) {
-      if (mounted) setState(() => _progress = (e['progress'] as num?)?.toInt() ?? _progress);
+      if (!mounted) return;
+      setState(() {
+        _progress = (e['progress'] as num?)?.toInt() ?? _progress;
+        _step = (e['step'] as String?) ?? _step;
+        final cur = Map<String, dynamic>.from(_result ?? const {});
+        for (final k in ['heartRate', 'spo2', 'systolic', 'diastolic', 'temperature']) {
+          if (e[k] != null) cur[k] = e[k];
+        }
+        if (cur.isNotEmpty) _result = cur;
+      });
     });
   }
 
@@ -86,51 +96,41 @@ class _MiniCheckupScreenState extends State<MiniCheckupScreen> {
   }
 
   Future<void> _start() async {
-    setState(() { _busy = true; _progress = 0; _error = null; });
+    setState(() { _busy = true; _progress = 0; _step = 'กำลังเริ่มตรวจสุขภาพด่วน...'; _error = null; });
     try {
       final res = await _watch.runMiniCheckup();
       final now = DateTime.now(), utc = now.toUtc(), s = AppState.instance;
       final vitals = <Map<String, dynamic>>[], bpList = <Map<String, dynamic>>[];
-      final hr = (res['heartRate'] as num?)?.toInt() ?? 0;
-      final spo2 = (res['spo2'] as num?)?.toInt() ?? 0;
-      final sys = (res['systolic'] as num?)?.toInt() ?? 0;
-      final dia = (res['diastolic'] as num?)?.toInt() ?? 0;
+      final hr = (res['heartRate'] as num?)?.toInt() ?? 0, spo2 = (res['spo2'] as num?)?.toInt() ?? 0;
+      final sys = (res['systolic'] as num?)?.toInt() ?? 0, dia = (res['diastolic'] as num?)?.toInt() ?? 0;
       final temp = (res['temperature'] as num?)?.toDouble();
-      final stress = (res['stress'] as num?)?.toInt() ?? 0;
-      final hrv = (res['hrv'] as num?)?.toInt() ?? 0;
+      final stress = (res['stress'] as num?)?.toInt() ?? 0, hrv = (res['hrv'] as num?)?.toInt() ?? 0;
 
       if (hr > 0) { s.setVital('heart_rate', hr.toDouble(), at: now); vitals.add(VitalSample(utc, 'heart_rate', hr.toDouble()).toJson()); }
       if (spo2 > 0) { s.setVital('spo2', spo2.toDouble(), at: now); vitals.add(VitalSample(utc, 'spo2', spo2.toDouble()).toJson()); }
       if (temp != null && temp > 30) { s.setVital('temperature', temp, at: now); vitals.add(VitalSample(utc, 'temperature', temp).toJson()); }
-      if (stress > 0) vitals.add(VitalSample(utc, 'stress', stress.toDouble()).toJson());
-      if (hrv > 0) vitals.add(VitalSample(utc, 'hrv', hrv.toDouble()).toJson());
+      if (stress > 0) { s.setVital('stress', stress.toDouble(), at: now); vitals.add(VitalSample(utc, 'stress', stress.toDouble()).toJson()); }
+      if (hrv > 0) { s.setVital('hrv', hrv.toDouble(), at: now); vitals.add(VitalSample(utc, 'hrv', hrv.toDouble()).toJson()); }
       if (sys > 0 && dia > 0) {
-        final bp = BpReading(
-          measuredAt: utc, systolic: sys, diastolic: dia, pulse: hr > 0 ? hr : null,
-          method: (res['bpMethod'] as String?) ?? 'ppg', status: 'SUCCESS', source: 'live',
-        );
-        s.addBp(bp);
-        bpList.add(bp.toJson());
+        final bp = BpReading(measuredAt: utc, systolic: sys, diastolic: dia, pulse: hr > 0 ? hr : null, method: (res['bpMethod'] as String?) ?? 'ppg', status: 'SUCCESS', source: 'live');
+        s.addBp(bp); bpList.add(bp.toJson());
       }
       await SyncService.instance.uploadPayload(bp: bpList, vitals: vitals);
       if (mounted) setState(() => _result = res);
     } catch (e) {
-      if (mounted) setState(() => _error = '$e');
+      if (mounted) setState(() => _error = e is PlatformException ? (e.message ?? e.code) : '$e');
     } finally {
-      if (mounted) setState(() => _busy = false);
+      if (mounted) setState(() { _busy = false; _step = null; });
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final l = AppState.instance.language, s = AppState.instance;
-    final sys = (_result?['systolic'] as num?)?.toInt() ?? s.latestBp?.systolic;
-    final dia = (_result?['diastolic'] as num?)?.toInt() ?? s.latestBp?.diastolic;
-    final hr = (_result?['heartRate'] as num?)?.toInt() ?? s.latestHeartRate;
-    final spo2 = (_result?['spo2'] as num?)?.toInt() ?? s.latestSpo2;
+    final sys = (_result?['systolic'] as num?)?.toInt() ?? s.latestBp?.systolic, dia = (_result?['diastolic'] as num?)?.toInt() ?? s.latestBp?.diastolic;
+    final hr = (_result?['heartRate'] as num?)?.toInt() ?? s.latestHeartRate, spo2 = (_result?['spo2'] as num?)?.toInt() ?? s.latestSpo2;
     final temp = (_result?['temperature'] as num?)?.toDouble() ?? s.latestTemperature;
-    final stress = (_result?['stress'] as num?)?.toInt();
-    final hrv = (_result?['hrv'] as num?)?.toInt();
+    final stress = (_result?['stress'] as num?)?.toInt() ?? s.latestStress, hrv = (_result?['hrv'] as num?)?.toInt() ?? s.latestHrv;
 
     return Scaffold(
       appBar: AppBar(title: Text(MiniCheckupScreen.titleFor(l))),
@@ -155,6 +155,7 @@ class _MiniCheckupScreenState extends State<MiniCheckupScreen> {
                   LinearProgressIndicator(value: _progress > 0 ? _progress / 100 : null, backgroundColor: Colors.white24, color: Colors.white, minHeight: 8),
                   const SizedBox(height: 8),
                   Text('$_progress%', style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: Colors.white)),
+                  if (_step != null) Text(_step!, textAlign: TextAlign.center, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.white)),
                 ],
                 const SizedBox(height: 16),
                 FilledButton.icon(

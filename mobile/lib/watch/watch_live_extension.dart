@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/services.dart';
 
+import '../app_state.dart';
 import 'watch_service.dart';
 
 /// ส่วนขยายของ WatchService สำหรับสั่งวัด SpO2, อุณหภูมิ, ชีพจรสด,
@@ -78,10 +79,17 @@ extension WatchLiveExtension on WatchService {
 
   /// สั่งตรวจสุขภาพด่วนในปุ่มเดียว 60 วินาที (One-Tap Mini Checkup: ชีพจร + ความดัน + SpO2 + อุณหภูมิ + ความเครียด + HRV)
   Future<Map<String, dynamic>> runMiniCheckup() => runQueued(() async {
+        final s = AppState.instance;
         final done = events
             .firstWhere((e) => e['type'] == 'miniCheckupResult' || e['type'] == 'miniCheckupError')
             .timeout(const Duration(seconds: 95));
-        await invokeNative('startMiniCheckup');
+        await invokeNative('startMiniCheckup', {
+          'heartRate': s.latestHeartRate,
+          'spo2': s.latestSpo2,
+          'systolic': s.latestBp?.systolic,
+          'diastolic': s.latestBp?.diastolic,
+          'temperature': s.latestTemperature,
+        });
         final Map<String, dynamic> e;
         try {
           e = await done;

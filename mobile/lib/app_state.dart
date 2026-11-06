@@ -21,7 +21,7 @@ class AppState extends ChangeNotifier {
   DateTime? lastSync;
 
   BpReading? latestBp;
-  int? latestHeartRate, latestSpo2;
+  int? latestHeartRate, latestSpo2, latestStress, latestHrv;
   double? latestTemperature;
   int todaySteps = 0, latestSleepMinutes = 0, latestDeepMinutes = 0, latestLightMinutes = 0;
   Map<String, dynamic>? battery;
@@ -169,11 +169,11 @@ class AppState extends ChangeNotifier {
     if (metric == 'heart_rate') latestHeartRate = v.round();
     if (metric == 'spo2') latestSpo2 = v.round();
     if (metric == 'temperature') latestTemperature = v;
+    if (metric == 'stress') latestStress = v.round();
+    if (metric == 'hrv') latestHrv = v.round();
     if (metric == 'steps') {
       final now = DateTime.now();
-      if (at == null || (at.year == now.year && at.month == now.month && at.day == now.day)) {
-        todaySteps += v.round();
-      }
+      if (at == null || (at.year == now.year && at.month == now.month && at.day == now.day)) todaySteps += v.round();
     }
     notifyListeners();
   }

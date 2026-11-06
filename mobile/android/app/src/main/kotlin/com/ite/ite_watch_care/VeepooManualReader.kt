@@ -9,6 +9,7 @@ import com.veepoo.protocol.model.datas.HrvManualData
 import com.veepoo.protocol.model.datas.MiniCheckupManualData
 import com.veepoo.protocol.model.datas.PressureManualData
 import com.veepoo.protocol.model.enums.DeviceManualDataType
+import com.veepoo.protocol.shareprence.VpSpGetUtil
 
 /**
  * อ่านข้อมูลที่ผู้ใช้กดวัดเองบนตัวนาฬิกา (ตาม DeviceManualTestDataActivity.java ใน Joeme Fit SDK 260626_new)
@@ -17,6 +18,10 @@ import com.veepoo.protocol.model.enums.DeviceManualDataType
 internal class VeepooManualReader(private val b: VeepooBridge) {
 
     fun readManual(sinceSec: Long) {
+        if (!VpSpGetUtil.getVpSpVariInstance(b.appContext).isSupportReadDeviceManual()) {
+            b.emit("manualDone")
+            return
+        }
         val requested = listOf(DeviceManualDataType.ALL)
         val supported = b.vp.supportManualDetectTypes?.takeIf { it.isNotEmpty() } ?: requested
         val vitals = ArrayList<Map<String, Any?>>()
