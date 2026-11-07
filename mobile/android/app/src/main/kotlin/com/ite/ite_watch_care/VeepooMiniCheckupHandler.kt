@@ -25,7 +25,17 @@ internal class VeepooMiniCheckupHandler(private val b: VeepooBridge) {
 
     private val checkupListener = object : IMiniCheckupOptListener {
         override fun onMiniCheckupTestProgress(progress: Int) {
-            b.emit("miniCheckupProgress", mapOf("progress" to progress, "step" to "กำลังตรวจสุขภาพด่วนครบทุกค่า..."))
+            val stage = when {
+                progress <= 25 -> 1
+                progress <= 55 -> 2
+                progress <= 84 -> 3
+                else -> 4
+            }
+            b.emit("miniCheckupProgress", mapOf(
+                "progress" to progress,
+                "stage" to stage,
+                "step" to "กำลังตรวจสุขภาพด่วนครบทุกค่า...",
+            ))
         }
 
         override fun onMiniCheckupStopSuccess() {

@@ -10,6 +10,7 @@ import '../theme/ilife_theme.dart';
 import '../watch/watch_live_extension.dart';
 import '../watch/watch_models.dart';
 import '../watch/watch_service.dart';
+import 'widgets/mini_checkup_grid.dart';
 
 /// หน้าตรวจสุขภาพด่วนในปุ่มเดียว 60 วินาที (One-Tap Mini Checkup — Joeme Fit SDK 260626_new)
 class MiniCheckupScreen extends StatefulWidget {
@@ -37,6 +38,17 @@ class MiniCheckupScreen extends StatefulWidget {
         AppLanguage.he => 'מודד לחץ דם · דופק · SpO2 · חום · מתח · HRV במקביל',
       };
 
+  static String watchHintFor(AppLanguage l) => switch (l) {
+        AppLanguage.th => 'ไฟเซนเซอร์ใต้เรือนนาฬิกากำลังทำงาน (หน้าจอนาฬิกาจะอยู่หน้าปกติ) กรุณาสวมให้กระชับและอยู่นิ่งๆ',
+        AppLanguage.en => 'Watch rear optical sensors are active (watch screen stays on normal face). Keep wrist still.',
+        AppLanguage.zh => '手表背部传感器指示灯已亮起（表盘保持正常界面），请佩戴紧贴并保持静止',
+        AppLanguage.ar => 'مستشعر الساعة الخلفي يعمل الآن (تبقى شاشة الساعة عادية)، يرجى الثبات',
+        AppLanguage.de => 'Rückseitige Sensoren der Uhr sind aktiv (Uhrdisplay bleibt normal). Bitte ruhig halten.',
+        AppLanguage.jawi => 'سينسور بلاكڠ جم سدڠ برفوڠسي (سكرين جم ككل بياسا)، سيلا دودوق diam',
+        AppLanguage.ru => 'Датчики на задней панели часов активны (экран часов остается обычным). Не двигайтесь.',
+        AppLanguage.he => 'חיישני השעון האחוריים פועלים (מסך השעון נשאר רגיל). נא להישאר ללא תנועה.',
+      };
+
   @override
   State<MiniCheckupScreen> createState() => _MiniCheckupScreenState();
 }
@@ -45,7 +57,9 @@ class _MiniCheckupScreenState extends State<MiniCheckupScreen> {
   final _watch = WatchService.instance;
   StreamSubscription<Map<String, dynamic>>? _sub;
   bool _busy = false;
+  bool _sessionStarted = false;
   int _progress = 0;
+  int _stage = 0;
   String? _step, _error;
   Map<String, dynamic>? _result;
 
@@ -78,12 +92,13 @@ class _MiniCheckupScreenState extends State<MiniCheckupScreen> {
       if (!mounted) return;
       setState(() {
         _progress = (e['progress'] as num?)?.toInt() ?? _progress;
+        _stage = (e['stage'] as num?)?.toInt() ?? (_progress <= 25 ? 1 : _progress <= 55 ? 2 : _progress <= 84 ? 3 : 4);
         _step = (e['step'] as String?) ?? _step;
         final cur = Map<String, dynamic>.from(_result ?? const {});
-        for (final k in ['heartRate', 'spo2', 'systolic', 'diastolic', 'temperature']) {
+        for (final k in ['heartRate', 'spo2', 'systolic', 'diastolic', 'temperature', 'stress', 'hrv']) {
           if (e[k] != null) cur[k] = e[k];
         }
-        if (cur.isNotEmpty) _result = cur;
+        _result = cur;
       });
     });
   }
@@ -96,7 +111,7 @@ class _MiniCheckupScreenState extends State<MiniCheckupScreen> {
   }
 
   Future<void> _start() async {
-    setState(() { _busy = true; _progress = 0; _step = 'กำลังเริ่มตรวจสุขภาพด่วน...'; _error = null; });
+    setState(() { _busy = true; _sessionStarted = true; _progress = 0; _stage = 1; _result = {}; _step = 'กำลังเริ่มตรวจสุขภาพด่วน...'; _error = null; });
     try {
       final res = await _watch.runMiniCheckup();
       final now = DateTime.now(), utc = now.toUtc(), s = AppState.instance;
@@ -118,19 +133,21 @@ class _MiniCheckupScreenState extends State<MiniCheckupScreen> {
       await SyncService.instance.uploadPayload(bp: bpList, vitals: vitals);
       if (mounted) setState(() => _result = res);
     } catch (e) {
-      if (mounted) setState(() => _error = e is PlatformException ? (e.message ?? e.code) : '$e');
+      if (mounted && !(e is PlatformException && e.code == 'CHECKUP_INTERRUPTED')) {
+        setState(() => _error = e is PlatformException ? (e.message ?? e.code) : '$e');
+      }
     } finally {
-      if (mounted) setState(() { _busy = false; _step = null; });
+      if (mounted) setState(() { _busy = false; _stage = 0; _step = null; });
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final l = AppState.instance.language, s = AppState.instance;
-    final sys = (_result?['systolic'] as num?)?.toInt() ?? s.latestBp?.systolic, dia = (_result?['diastolic'] as num?)?.toInt() ?? s.latestBp?.diastolic;
-    final hr = (_result?['heartRate'] as num?)?.toInt() ?? s.latestHeartRate, spo2 = (_result?['spo2'] as num?)?.toInt() ?? s.latestSpo2;
-    final temp = (_result?['temperature'] as num?)?.toDouble() ?? s.latestTemperature;
-    final stress = (_result?['stress'] as num?)?.toInt() ?? s.latestStress, hrv = (_result?['hrv'] as num?)?.toInt() ?? s.latestHrv;
+    final sys = (_result?['systolic'] as num?)?.toInt() ?? (_sessionStarted ? null : s.latestBp?.systolic), dia = (_result?['diastolic'] as num?)?.toInt() ?? (_sessionStarted ? null : s.latestBp?.diastolic);
+    final hr = (_result?['heartRate'] as num?)?.toInt() ?? (_sessionStarted ? null : s.latestHeartRate), spo2 = (_result?['spo2'] as num?)?.toInt() ?? (_sessionStarted ? null : s.latestSpo2);
+    final temp = (_result?['temperature'] as num?)?.toDouble() ?? (_sessionStarted ? null : s.latestTemperature);
+    final stress = (_result?['stress'] as num?)?.toInt() ?? (_sessionStarted ? null : s.latestStress), hrv = (_result?['hrv'] as num?)?.toInt() ?? (_sessionStarted ? null : s.latestHrv);
 
     return Scaffold(
       appBar: AppBar(title: Text(MiniCheckupScreen.titleFor(l))),
@@ -156,6 +173,8 @@ class _MiniCheckupScreenState extends State<MiniCheckupScreen> {
                   const SizedBox(height: 8),
                   Text('$_progress%', style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: Colors.white)),
                   if (_step != null) Text(_step!, textAlign: TextAlign.center, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.white)),
+                  const SizedBox(height: 8),
+                  Text(MiniCheckupScreen.watchHintFor(l), textAlign: TextAlign.center, style: TextStyle(fontSize: 11.5, color: Colors.white.withValues(alpha: 0.85))),
                 ],
                 const SizedBox(height: 16),
                 FilledButton.icon(
@@ -169,29 +188,12 @@ class _MiniCheckupScreenState extends State<MiniCheckupScreen> {
           ),
           if (_error != null) Padding(padding: const EdgeInsets.only(top: 12), child: Text(_error!, style: const TextStyle(color: Colors.redAccent, fontWeight: FontWeight.w600))),
           const SizedBox(height: 18),
-          GridView.count(
-            crossAxisCount: 2, shrinkWrap: true, physics: const NeverScrollableScrollPhysics(),
-            mainAxisSpacing: 12, crossAxisSpacing: 12, childAspectRatio: 1.55,
-            children: [
-              _tile('BP (mmHg)', sys != null && dia != null ? '$sys/$dia' : '--/--', Icons.speed, ILifeTheme.magenta),
-              _tile('Heart Rate', hr != null ? '$hr bpm' : '-- bpm', Icons.favorite, const Color(0xFFE53935)),
-              _tile('SpO2', spo2 != null ? '$spo2%' : '--%', Icons.air, ILifeTheme.teal),
-              _tile('Body Temp', temp != null ? '${temp.toStringAsFixed(1)} °C' : '--.- °C', Icons.thermostat, const Color(0xFFFB8C00)),
-              _tile('Stress', stress != null && stress > 0 ? '$stress' : '--', Icons.psychology_alt, ILifeTheme.navy),
-              _tile('HRV', hrv != null && hrv > 0 ? '$hrv ms' : '-- ms', Icons.monitor_heart_outlined, const Color(0xFF8E24AA)),
-            ],
+          MiniCheckupGrid(
+            language: l, busy: _busy, activeStage: _stage,
+            systolic: sys, diastolic: dia, heartRate: hr, spo2: spo2, temperature: temp, stress: stress, hrv: hrv,
           ),
         ],
       ),
     );
   }
-
-  Widget _tile(String label, String value, IconData icon, Color color) => Container(
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18), border: Border.all(color: const Color(0xFFE5E7EB))),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-          Row(children: [Icon(icon, size: 18, color: color), const SizedBox(width: 6), Expanded(child: Text(label, style: const TextStyle(fontSize: 12, color: ILifeTheme.textSecondary)))]),
-          Text(value, style: TextStyle(fontSize: 21, fontWeight: FontWeight.w900, color: color)),
-        ]),
-      );
 }

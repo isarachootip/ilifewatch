@@ -64,6 +64,62 @@ void main() {
     expect(find.text('64 ms'), findsOneWidget);
   });
 
+  testWidgets('MiniCheckupScreen resets all 6 cards to -- on start and shows watch sensor hint', (tester) async {
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(
+      const MethodChannel('ite.watch/method'),
+      (call) async => null,
+    );
+    AppState.instance.addBp(BpReading(
+      measuredAt: DateTime.now(),
+      systolic: 139,
+      diastolic: 83,
+      method: 'ppg',
+      status: 'SUCCESS',
+      source: 'live',
+    ));
+    AppState.instance.setVital('heart_rate', 88);
+    AppState.instance.setVital('spo2', 99);
+    AppState.instance.setVital('temperature', 35.7);
+    AppState.instance.setVital('stress', 49);
+    AppState.instance.setVital('hrv', 76);
+
+    await tester.pumpWidget(const MaterialApp(home: MiniCheckupScreen()));
+    await tester.pump();
+
+    // Before pressing start, latest values are visible
+    expect(find.text('139/83'), findsOneWidget);
+    expect(find.text('88 bpm'), findsOneWidget);
+    expect(find.text('99%'), findsOneWidget);
+    expect(find.text('35.7 °C'), findsOneWidget);
+    expect(find.text('49'), findsOneWidget);
+    expect(find.text('76 ms'), findsOneWidget);
+
+    // Tap start button
+    await tester.tap(find.text('เริ่มตรวจสุขภาพด่วน'));
+    await tester.pump();
+
+    // Old values must be reset to placeholders immediately while measuring
+    expect(find.text('139/83'), findsNothing);
+    expect(find.text('88 bpm'), findsNothing);
+    expect(find.text('99%'), findsNothing);
+    expect(find.text('35.7 °C'), findsNothing);
+    expect(find.text('49'), findsNothing);
+    expect(find.text('76 ms'), findsNothing);
+
+    expect(find.text('--/--'), findsOneWidget);
+    expect(find.text('-- bpm'), findsOneWidget);
+    expect(find.text('--%'), findsOneWidget);
+    expect(find.text('--.- °C'), findsOneWidget);
+    expect(find.text('--'), findsOneWidget);
+    expect(find.text('-- ms'), findsOneWidget);
+    expect(find.textContaining('ไฟเซนเซอร์ใต้เรือนนาฬิกากำลังทำงาน'), findsOneWidget);
+    expect(find.text('กำลังวัด...'), findsWidgets);
+
+    // Cancel measurement to clean up timers
+    await tester.tap(find.text('ยกเลิกการวัด'));
+    await tester.pump();
+  });
+
   test('WatchService tracks pairing screen lock to prevent background reconnect collision', () {
     WatchService.instance.setPairingActive(true);
     expect(WatchService.instance.isPairingActive, isTrue);

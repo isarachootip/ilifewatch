@@ -77,12 +77,19 @@ extension WatchLiveExtension on WatchService {
   Future<void> stopWatchSportMode() =>
       runQueued(() => invokeNative('stopSportMode'));
 
+  static Completer<Map<String, dynamic>>? _checkupCancel;
+
   /// สั่งตรวจสุขภาพด่วนในปุ่มเดียว 60 วินาที (One-Tap Mini Checkup: ชีพจร + ความดัน + SpO2 + อุณหภูมิ + ความเครียด + HRV)
   Future<Map<String, dynamic>> runMiniCheckup() => runQueued(() async {
         final s = AppState.instance;
-        final done = events
-            .firstWhere((e) => e['type'] == 'miniCheckupResult' || e['type'] == 'miniCheckupError')
-            .timeout(const Duration(seconds: 95));
+        final cancel = _checkupCancel = Completer<Map<String, dynamic>>();
+        final done = Future.any([
+          events.firstWhere((e) =>
+              e['type'] == 'miniCheckupResult' ||
+              e['type'] == 'miniCheckupError' ||
+              e['type'] == 'miniCheckupStopped'),
+          cancel.future,
+        ]).timeout(const Duration(seconds: 95));
         await invokeNative('startMiniCheckup', {
           'heartRate': s.latestHeartRate,
           'spo2': s.latestSpo2,
@@ -94,7 +101,11 @@ extension WatchLiveExtension on WatchService {
         try {
           e = await done;
         } finally {
+          _checkupCancel = null;
           await invokeNative('stopMiniCheckup');
+        }
+        if (e['type'] == 'miniCheckupStopped') {
+          throw PlatformException(code: 'CHECKUP_INTERRUPTED', message: bpStatusThai('INTERRUPTED'));
         }
         if (e['type'] == 'miniCheckupError') {
           throw PlatformException(code: 'CHECKUP_${e['status']}', message: bpStatusThai('${e['status']}'));
@@ -102,7 +113,13 @@ extension WatchLiveExtension on WatchService {
         return e;
       });
 
-  Future<void> cancelMiniCheckup() => invokeNative('stopMiniCheckup');
+  Future<void> cancelMiniCheckup() {
+    final c = _checkupCancel;
+    if (c != null && !c.isCompleted) {
+      c.complete({'type': 'miniCheckupStopped'});
+    }
+    return invokeNative('stopMiniCheckup');
+  }
 
   /// สั่งเปิดโหมดวัดค่าอัตโนมัติ 24 ชม. บนนาฬิกา (Auto HR, Auto BP, Auto Temp, Auto HRV, Auto Stress)
   Future<void> enableWatchAutoDetect() =>

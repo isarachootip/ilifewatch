@@ -140,13 +140,17 @@ internal class VeepooSequentialCheckup(private val b: VeepooBridge) {
             3 -> (56 + (stageTicks * 28 / 16).coerceAtMost(28)) to "กำลังวัดความดันโลหิต (เซนเซอร์แสง PPG)..."
             else -> (85 + (stageTicks * 14 / 10).coerceAtMost(14)) to "กำลังวัดอุณหภูมิร่างกาย และคำนวณ Stress / HRV..."
         }
+        val stage1Done = stage > 1 || gotHr
+        val stage2Done = stage > 2 || gotSpo2
+        val stage3Done = stage > 3 || gotBp
         b.emit("miniCheckupProgress", mapOf(
             "progress" to pct,
+            "stage" to stage,
             "step" to stepLabel,
-            "heartRate" to if (gotHr) hr else null,
-            "spo2" to if (gotSpo2) spo2 else null,
-            "systolic" to if (gotBp) sys else null,
-            "diastolic" to if (gotBp) dia else null,
+            "heartRate" to if (stage1Done) hr else null,
+            "spo2" to if (stage2Done) spo2 else null,
+            "systolic" to if (stage3Done) sys else null,
+            "diastolic" to if (stage3Done) dia else null,
             "temperature" to if (gotTemp) temp else null,
         ))
         when (stage) {
